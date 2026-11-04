@@ -346,37 +346,29 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { style: S.row },
-          h('div', { style: S.sectionTitle }, '连接配置'),
+          h('div', { style: S.sectionTitle }, '配置'),
           h('span', { style: { flex: 1 } }),
           h('button', { type: 'button', style: S.primary, disabled: busy, onClick: save }, busy ? '保存中…' : '保存配置'),
         ),
         h(
-          'div',
-          { style: S.row },
-          h(
-            Field,
-            { caption: '实例地址 baseUrl（含端口）' },
-            h('input', {
-              style: S.input,
-              value: draft.baseUrl,
-              onChange: (e) => patch('baseUrl', e.target.value),
-              placeholder: 'http://192.168.0.11:8123',
-              spellCheck: false,
-            }),
-          ),
-          h(
-            Field,
-            { caption: '显示名 label（出现在状态卡与提示词里）' },
-            h('input', { style: S.input, value: draft.label, onChange: (e) => patch('label', e.target.value), placeholder: '客厅 HA' }),
-          ),
-        ),
-        h(
           Field,
-          { caption: '备注 notes（原样进入系统提示词，例如重启耗时、特殊约定）' },
-          h('input', { style: S.input, value: draft.notes, onChange: (e) => patch('notes', e.target.value) }),
+          { caption: '实例地址 baseUrl（含端口）' },
+          h('input', {
+            style: S.input,
+            value: draft.baseUrl,
+            onChange: (e) => patch('baseUrl', e.target.value),
+            placeholder: 'http://192.168.0.11:8123',
+            spellCheck: false,
+          }),
         ),
         h(TokenEditor, { authSource, onChanged: onSaved }),
-        h('div', { style: S.caption }, '观测项（最多 6 个；entity 与 template 二选一，template 需要管理员令牌）'),
+        h('div', { style: S.divider }),
+        h(
+          'div',
+          { style: S.subsection },
+          h('div', { style: S.sectionTitle }, '观测项'),
+          h('div', { style: S.caption }, '最多 6 个；entity 与 template 二选一，template 需要管理员令牌'),
+        ),
         draft.stats.length
           ? draft.stats.map((stat, index) =>
               h(
@@ -439,7 +431,7 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { style: S.subsection },
-          h('div', { style: S.sectionTitle }, '系统提示词注入'),
+          h('div', { style: S.sectionTitle }, '显示与系统提示词注入'),
           h(
             'label',
             { style: { ...S.row, gap: 8 } },
@@ -456,6 +448,31 @@ window.__ModuleLoader__.load({
             draft.injectEnabled
               ? '关闭后所有对话都不再自动注入；ha_status 工具仍然可用。'
               : '当前已关闭：不会自动注入，仍可随时调用 ha_status。',
+          ),
+          h(
+            Field,
+            { caption: '显示名 label（状态卡标题 + 注入块）' },
+            h('input', {
+              style: S.input,
+              value: draft.label,
+              onChange: (e) => patch('label', e.target.value),
+              placeholder: '客厅 HA',
+            }),
+          ),
+          h(
+            Field,
+            { caption: '备注 notes（只写入注入块；关闭注入后不生效）' },
+            h('textarea', {
+              style: {
+                ...S.input,
+                minHeight: 44,
+                resize: 'vertical',
+                opacity: draft.injectEnabled ? 1 : 0.5,
+              },
+              value: draft.notes,
+              onChange: (e) => patch('notes', e.target.value),
+              placeholder: '例如：重启约 4.5–5 分钟；YAML 配置文件无 API',
+            }),
           ),
           h(
             Field,
