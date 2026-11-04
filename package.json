@@ -20,35 +20,28 @@
   },
   "files": [
     "lib",
-    "client",
     "assets",
     "cordis.patch.yml",
     "README.md",
     "README.en.md",
-    "LICENSE"
+    "LICENSE",
+    "client"
   ],
   "exports": {
     ".": "./lib/index.js",
-    "./client": "./client/client.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./client": "./client/client.js"
   },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
     "client": {
-      "platform": "web",
-      "inject": [
-        "@deepseek-ai/dsh-client-ui-settings"
-      ]
+      "platform": "web"
     }
   },
   "engines": {
     "dsh": ">=0.2.1-rc.1 <0.3.0-0"
-  },
-  "peerDependencies": {
-    "@deepseek-ai/cordis": "^4.0.4",
-    "@deepseek-ai/schemastery": "^3.18.4"
   },
   "scripts": {
     "test": "node test/run.mjs"

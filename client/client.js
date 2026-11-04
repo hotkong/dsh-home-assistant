@@ -1,6 +1,7 @@
-// dsh-home-assistant — plugin page card: live status + an inline configuration editor.
-// Plain React + inline styles on purpose: it must render on any host build without
-// depending on a specific primitives API surface.
+// dsh-home-assistant — a Settings tab: live status + configuration editor.
+// The host's settings shell lists every `settings.section` entry as a nav row
+// (see dsh-client-ui-settings-general), so one registration is enough.
+// Plain React + inline styles on purpose: no primitives-version coupling.
 window.__ModuleLoader__.load({
   id: 'dsh-home-assistant',
   factory: (require) => {
@@ -365,20 +366,17 @@ window.__ModuleLoader__.load({
       apply(ctx) {
         const slots = ctx.slots ?? (typeof ctx.get === 'function' ? ctx.get('slots') : undefined)
         if (!slots || typeof slots.inject !== 'function') {
-          console.warn('[dsh-home-assistant] slots 服务不可用，状态卡未注册')
+          console.warn('[dsh-home-assistant] slots 服务不可用，设置页未注册')
           return
         }
         const configForms = ctx.configForms ?? (typeof ctx.get === 'function' ? ctx.get('configForms') : undefined)
         const form = configForms && typeof configForms.get === 'function' ? configForms.get(ENTRY_ID) : null
         const Bound = () => h(Card, { form })
-        slots.inject('plugins.detail.section', () => slots.register({ name: 'plugins.detail.section', key: ENTRY_ID, id: ENTRY_ID, order: 10 }, Bound))
-        slots.inject('settings.plugin.item', () =>
-          slots.register({ name: 'settings.plugin.item', key: ENTRY_ID, id: ENTRY_ID, order: 10, locale: ENTRY_ID }, Bound),
-        )
-        // Older/portable settings UI: a dedicated page, registered the same way
-        // dsh-chat-manager does on this host.
         slots.inject('settings.section', () =>
-          slots.register({ name: 'settings.section', id: ENTRY_ID, order: 40, priority: -10, label: () => 'Home Assistant' }, Bound),
+          slots.register(
+            { name: 'settings.section', id: ENTRY_ID, order: 40, label: () => 'Home Assistant' },
+            Bound,
+          ),
         )
       },
     }
