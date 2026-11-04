@@ -33,7 +33,7 @@ For local development, `link:` the repository into the profile's `dependencies` 
 
 Three entry points:
 
-1. **Configure** — open **Settings → Home Assistant**. The status card sits on top, and the form below edits the instance URL, display name, notes, credential reference, inline token, up to six stats, prompt injection and scale counting. **Save** applies immediately; no restart.
+1. **Configure** — open **Settings → Home Assistant**. The status card sits on top, and the form below edits the instance URL, display name, notes, credential reference, inline token, up to six stats, prompt injection, the workspace allowlist, and scale counting. **Save** applies immediately; no restart.
 2. **Watch** — the same card shows the connection, token source, Core / Supervisor / OS versions, core state, scale, disk, stats and update time. It refreshes every 15 s; **Refresh status** forces a probe and **Open HA** jumps to the instance.
 3. **Ask the agent** — "how is Home Assistant doing?" triggers `ha_status`; and since the environment block rides on every prompt, questions like "how many lights are on?" just work.
 
@@ -64,7 +64,8 @@ Create the token in Home Assistant under *Profile → Security → Long-lived ac
 | `notes` | Free-form note (e.g. "restart takes ~5 min"), copied into the block |
 | `stats` | 1–6 entries, see below |
 | `tokenRef` / `token` | Token source |
-| `inject.*` | Whether to inject, refresh interval, character cap (default 600) |
+| `inject.enabled` / `refreshSec` / `maxChars` | Global injection switch, refresh interval, character cap (default 600) |
+| `inject.workspaces` | Workspace allowlist: inject only under these absolute paths (subdirectories included); empty = every workspace. `ha_status` is unaffected |
 | `status.*` | Cache TTL, request timeout, whether to count the scale |
 
 ### Stats
@@ -111,11 +112,14 @@ Optional `attribute` reads one attribute. A failing entry renders `—` without 
 # Against a real instance: print the model-facing text + prompt block, assert ≤ 4 KB
 HA_TOKEN=... node test/run.mjs http://192.168.0.11:8123
 
+# Offline: injection switch + workspace allowlist
+node test/prompt.mjs
+
 # Offline: mount the browser half, assert the settings.section registration renders
 node test/client.mjs
 ```
 
-`test/run.mjs` mounts the server half against a fake cordis context; `test/client.mjs` mounts the client half against a fake `__ModuleLoader__` plus a minimal React stand-in, no browser required.
+`test/run.mjs` mounts the server half against a fake cordis context; `test/prompt.mjs` covers the injection switch and workspace allowlist; `test/client.mjs` mounts the client half against a fake `__ModuleLoader__` plus a minimal React stand-in, no browser required.
 
 > **Local `link:` gotcha**: Node resolves a symlinked package to its real path before walking up for `node_modules`. A `link:`-ed plugin therefore needs its own view of `@deepseek-ai/schemastery` — either install it normally into the profile (so pnpm's store provides it) or add a `node_modules/@deepseek-ai/schemastery` link inside the plugin directory. Otherwise `Config` is `undefined`, the settings form disappears, and tools/injection keep working.
 

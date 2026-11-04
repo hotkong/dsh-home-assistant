@@ -34,7 +34,7 @@ dsh plugin --profile web add dsh-home-assistant
 
 装好之后有三个入口：
 
-1. **配置**：打开 **设置（Settings）→ Home Assistant**。页面顶部是状态卡，下面是配置表单：实例地址、显示名、备注、凭据名、内联令牌、观测项（最多 6 个）、是否注入提示词、是否统计规模。点「保存配置」立即生效，不需要重启。
+1. **配置**：打开 **设置（Settings）→ Home Assistant**。页面顶部是状态卡，下面是配置表单：实例地址、显示名、备注、凭据名、内联令牌、观测项（最多 6 个）、是否注入提示词、**注入工作区白名单**、是否统计规模。点「保存配置」立即生效，不需要重启。
 2. **看状态**：同一页的状态卡显示连接点、令牌来源、Core / Supervisor / OS 版本、运行状态、规模、磁盘、观测项与更新时间；每 15 秒自动刷新，也可点「刷新状态」强制探测；「打开 HA」直接跳转实例。
 3. **让 agent 用**：直接问「看下 HA 状态」，它会调 `ha_status`；而**每轮系统提示词本来就带着环境块**，所以更省事——直接问「家里现在几盏灯亮着」它也答得上来。
 
@@ -70,7 +70,8 @@ refs:
 | `notes` | 自由备注（如「重启约 5 分钟」），原样进注入块 |
 | `stats` | 1–6 个观测项，见下 |
 | `tokenRef` / `token` | 令牌来源，见上 |
-| `inject.enabled` / `refreshSec` / `maxChars` | 是否注入、刷新间隔、字数上限（默认 600） |
+| `inject.enabled` / `refreshSec` / `maxChars` | 全局注入开关、刷新间隔、字数上限（默认 600） |
+| `inject.workspaces` | 工作区白名单：只在这些绝对路径（含子目录）自动注入；空数组 = 所有工作区。`ha_status` 不受影响 |
 | `status.refreshSec` / `timeoutMs` / `showScale` | 状态缓存 TTL、请求超时、是否统计规模 |
 
 ### 观测项（stats）
@@ -125,11 +126,14 @@ stats:
 # 真机：打印模型看到的文本、注入块，并断言结果 ≤ 4 KB
 HA_TOKEN=... node test/run.mjs http://192.168.0.11:8123
 
+# 离线：注入开关与工作区白名单
+node test/prompt.mjs
+
 # 离线：挂载浏览器半，检查 settings.section 注册与配置表单能渲染
 node test/client.mjs
 ```
 
-`test/run.mjs` 用假 cordis 上下文挂载服务端半；`test/client.mjs` 用假 `__ModuleLoader__` + 极简 React 挂载客户端半，不依赖浏览器。
+`test/run.mjs` 用假 cordis 上下文挂载服务端半；`test/prompt.mjs` 验证注入开关与工作区白名单；`test/client.mjs` 用假 `__ModuleLoader__` + 极简 React 挂载客户端半，不依赖浏览器。
 
 > **本地 `link:` 的坑**：Node 会先解析符号链接的真实路径，再到真实路径的父目录找 `node_modules`。因此 `link:` 进 profile 的包**必须自己能看到 `@deepseek-ai/schemastery`**——要么在 profile 里正常 `pnpm add` 让它进虚拟 store，要么在插件目录建一个 `node_modules/@deepseek-ai/schemastery` 链接。否则 `Config` 为 `undefined`，设置页没有表单（工具与注入仍工作）。
 

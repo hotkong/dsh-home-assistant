@@ -125,6 +125,7 @@ window.__ModuleLoader__.load({
           unit: stat?.unit ?? '',
         })),
         injectEnabled: value?.inject?.enabled !== false,
+        workspaces: Array.isArray(value?.inject?.workspaces) ? value.inject.workspaces.join('\n') : '',
         showScale: value?.status?.showScale !== false,
       }
     }
@@ -177,6 +178,14 @@ window.__ModuleLoader__.load({
                 })),
             },
             { op: 'set', path: ['inject', 'enabled'], value: draft.injectEnabled },
+            {
+              op: 'set',
+              path: ['inject', 'workspaces'],
+              value: draft.workspaces
+                .split('\n')
+                .map((line) => line.trim())
+                .filter(Boolean),
+            },
             { op: 'set', path: ['status', 'showScale'], value: draft.showScale },
           ]
           // Secrets are write-only: an empty box means "keep the stored value".
@@ -349,6 +358,17 @@ window.__ModuleLoader__.load({
             h('span', { style: S.caption }, '统计实体 / 设备 / 区域数量'),
           ),
         ),
+        h(
+          Field,
+          { caption: '仅在以下工作区自动注入（每行一个绝对路径；留空 = 所有工作区）' },
+          h('textarea', {
+            style: { ...S.input, minHeight: 54, resize: 'vertical', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' },
+            value: draft.workspaces,
+            onChange: (e) => patch('workspaces', e.target.value),
+            placeholder: '/data/dsh/home/homeassistant',
+            spellCheck: false,
+          }),
+        ),
         message.text ? h('div', { style: message.tone === 'error' ? S.error : message.tone === 'ok' ? S.ok : S.muted }, message.text) : null,
       )
     }
@@ -419,6 +439,7 @@ window.__ModuleLoader__.load({
               scale ? h(KV, { label: '规模' }, scale) : null,
               data.disk?.total_gb ? h(KV, { label: '磁盘' }, `已用 ${data.disk.used_gb} / ${data.disk.total_gb} GB`) : null,
               data.time_zone ? h(KV, { label: '时区' }, data.time_zone) : null,
+              data.workspace ? h(KV, { label: '注入工作区' }, data.workspace) : null,
               (data.stats || []).length
                 ? h(
                     'div',

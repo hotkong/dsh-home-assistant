@@ -70,7 +70,7 @@ const value = {
   label: '客厅 HA',
   notes: '重启约 4.5–5 分钟',
   stats: [{ title: '亮灯数', entity: '', attribute: '', template: '{{ 1 }}', unit: '' }],
-  inject: { enabled: true, refreshSec: 60, maxChars: 600 },
+  inject: { enabled: true, workspaces: ['/data/dsh/home/homeassistant'], refreshSec: 60, maxChars: 600 },
   status: { refreshSec: 30, timeoutMs: 5000, showScale: true },
 }
 const form = {
@@ -144,6 +144,10 @@ for (const expected of ['Home Assistant', '连接配置', '保存配置', '实�
 }
 if (!out.value.includes('http://192.168.0.11:8123') || !out.value.includes('客厅 HA')) {
   console.error('FAIL: configuration inputs were not populated from the form snapshot:', out.value)
+  process.exit(1)
+}
+if (!out.value.includes('/data/dsh/home/homeassistant')) {
+  console.error('FAIL: workspace allowlist textarea was not populated:', out.value)
   process.exit(1)
 }
 if (!out.placeholder.includes('http://192.168.0.11:8123')) {
