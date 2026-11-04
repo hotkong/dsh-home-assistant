@@ -117,23 +117,6 @@ stats:
 | 重启后第一条提示词说「没有令牌」 | 凭据服务尚未就绪的启动竞态；插件对「无凭据」失败使用 5 秒短 TTL，稍等会自愈 |
 | 状态一直不可达 | `curl '<baseUrl>/api/' -H "Authorization: Bearer $HA_TOKEN"`；再试 `GET /dsh-home-assistant/status?refresh=1` |
 
-## 开发
-
-```sh
-# 真机：打印模型看到的文本、注入块，并断言结果 ≤ 4 KB
-HA_TOKEN=... node test/run.mjs http://homeassistant.local:8123
-
-# 离线：注入开关与工作区白名单
-node test/prompt.mjs
-
-# 离线：挂载浏览器半，检查 settings.section 注册与配置表单能渲染
-node test/client.mjs
-```
-
-`test/run.mjs` 用假 cordis 上下文挂载服务端半；`test/prompt.mjs` 验证注入开关与工作区白名单；`test/client.mjs` 用假 `__ModuleLoader__` + 极简 React 挂载客户端半，并静态检查 `inject` 与 `ctx.*` 访问是否一致，不依赖浏览器。
-
-> **本地 `link:` 的坑**：Node 会先解析符号链接的真实路径，再到真实路径的父目录找 `node_modules`。因此 `link:` 进 profile 的包**必须自己能看到 `@deepseek-ai/schemastery`**——要么在 profile 里正常 `pnpm add` 让它进虚拟 store，要么在插件目录建一个 `node_modules/@deepseek-ai/schemastery` 链接。否则 `Config` 为 `undefined`，设置页没有表单（工具与注入仍工作）。
-
 ## License
 
 MIT
