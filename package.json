@@ -1,0 +1,56 @@
+{
+  "name": "dsh-home-assistant",
+  "version": "0.1.0",
+  "description": "Home Assistant environment panel for DeepSeek Harness: configure the instance once, then every session already knows where it is, what version it runs and how it is doing. · 把 Home Assistant 的环境配一次，之后每个会话开局就知道它在哪、什么版本、什么状态。",
+  "type": "module",
+  "main": "lib/index.js",
+  "icon": "assets/icon.svg",
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "homeassistant",
+    "home-assistant",
+    "smart-home"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hotkong/dsh-home-assistant.git"
+  },
+  "files": [
+    "lib",
+    "client",
+    "assets",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "engines": {
+    "dsh": ">=0.2.1-rc.1 <0.3.0-0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/schemastery": "^3.18.4"
+  },
+  "scripts": {
+    "test": "node test/run.mjs"
+  }
+}
