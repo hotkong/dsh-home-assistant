@@ -109,6 +109,16 @@ stats:
 - 注入块在系统提示词组装时**只读缓存**，不等网络——HA 挂了不会卡住对话；
 - 凭据文件请保持 `0600`；内联 `token` 的风险见上。
 
+## 故障排查
+
+| 现象 | 先查什么 |
+|---|---|
+| Settings 里没有「Home Assistant」 | `dsh --profile web --dump-config \| grep home-assistant`；没有行 = 没加进 `dsh.profile.bundles`（只装进 `node_modules` 不够） |
+| 页面在，但表单显示「没有配置命名空间」 | `Config` 没加载：`@deepseek-ai/schemastery` 解析失败。`link:` 安装时按真实路径找模块，需要给插件自己的 `node_modules` 补链接 |
+| 点保存被拒绝 / 没反应 | 字段必须在 `volatile()` 之下；看浏览器网络里的 `settings/mutate` 错误信息 |
+| 重启后第一条提示词说「没有令牌」 | 凭据服务尚未就绪的启动竞态；插件对「无凭据」失败使用 5 秒短 TTL，稍等会自愈 |
+| 状态一直不可达 | `curl '<baseUrl>/api/' -H "Authorization: Bearer $HA_TOKEN"`；再试 `GET /dsh-home-assistant/status?refresh=1` |
+
 ## 开发
 
 ```sh

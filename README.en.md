@@ -95,6 +95,16 @@ Optional `attribute` reads one attribute. A failing entry renders `—` without 
 - Prompt assembly reads the cache only — an unreachable HA never blocks a conversation.
 - Keep the credential file at `0600`; see the inline-token caveat above.
 
+## Troubleshooting
+
+| Symptom | Check first |
+|---|---|
+| No "Home Assistant" in Settings | `dsh --profile web --dump-config \| grep home-assistant`; no row = the package is not in `dsh.profile.bundles` (being in `node_modules` is not enough) |
+| Page exists but the form says "no configuration namespace" | `Config` failed to load: `@deepseek-ai/schemastery` is unresolvable. A `link:`-ed package resolves from its real path, so give it its own `node_modules` link |
+| Save is rejected / does nothing | Every edited field must sit under a `volatile()` ancestor; inspect the `settings/mutate` response in the browser network tab |
+| First prompt after a restart says "no token" | Credentials-service startup race; "no credential" failures use a 5 s TTL, so it self-heals |
+| Status stays unreachable | `curl '<baseUrl>/api/' -H "Authorization: Bearer $HA_TOKEN"`, then `GET /dsh-home-assistant/status?refresh=1` |
+
 ## Development
 
 ```sh
