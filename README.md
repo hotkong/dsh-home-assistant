@@ -4,7 +4,7 @@
 
 > 把 Home Assistant 的环境配一次，之后**每个新会话开局就知道它在哪、什么版本、什么状态**——不用再读文档、不用再抄令牌。
 
-一个 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 插件：在设置里填好 HA 地址并配置 1–6 个「要看的值」，插件会把环境基线注入系统提示词，并提供一个只读的 `ha_status` 工具和一张状态卡。
+一个 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 插件：在 **设置 → Home Assistant** 里填好地址、令牌和 1–6 个「要看的值」，插件会把环境基线注入系统提示词，并提供一个只读的 `ha_status` 工具和一张实时状态卡。
 
 ```text
 <home_assistant label="客厅 HA" url="http://192.168.0.11:8123">
@@ -12,7 +12,7 @@ Core 2026.10.4 ｜ Supervisor 2026.10.4 ｜ OS 18.3.1
 状态：RUNNING（recovery_mode=false，watchdog=true）
 规模：3965 实体 / 497 设备 / 36 区域 / 74 集成
 磁盘：已用 13.8/27.7 GB
-统计：亮灯数 37 ｜ 室内温度 22.0 °C ｜ 在家 1
+统计：亮灯数 50 ｜ 室内温度 22.0 °C ｜ 在家 2
 备注：重启约 4.5–5 分钟；YAML 配置文件无 API，控制走 HA 原生界面
 更新：2026-11-04 16:34 (+08:00)
 </home_assistant>
@@ -28,15 +28,17 @@ dsh plugin --profile web add dsh-home-assistant
 
 装完刷新页面（或重启 `dsh web`）。插件在市场里的名字是 `dsh-home-assistant`。
 
+本地开发时可以把仓库 `link:` 进 profile 的 `dependencies`，并把包名加进 `dsh.profile.bundles`；插件自带的 `cordis.patch.yml` 会自动插入 `home-assistant` 行，profile 的 patch 只需覆盖 `config`。本机就是这么跑的（见 `openspec/changes/0001-dsh-ha-plugin/tasks.md` 的验证记录）。
+
 ## 怎么用
 
 装好之后有三个入口：
 
-1. **配置**：打开 **插件页（Plugins）** → 找到 `dsh-home-assistant` → 点进详情，里面是宿主动态生成的配置表单（地址、令牌、观测项……）。
-2. **看状态**：同一个详情页下方有状态卡；或者在对话里直接输入 `/ha`，它不经过模型，直接把当前状态打出来。
+1. **配置**：打开 **设置（Settings）→ Home Assistant**。页面顶部是状态卡，下面是配置表单：实例地址、显示名、备注、凭据名、内联令牌、观测项（最多 6 个）、是否注入提示词、是否统计规模。点「保存配置」立即生效，不需要重启。
+2. **看状态**：同一页的状态卡显示连接点、令牌来源、Core / Supervisor / OS 版本、运行状态、规模、磁盘、观测项与更新时间；每 15 秒自动刷新，也可点「刷新状态」强制探测；「打开 HA」直接跳转实例。
 3. **让 agent 用**：直接问「看下 HA 状态」，它会调 `ha_status`；而**每轮系统提示词本来就带着环境块**，所以更省事——直接问「家里现在几盏灯亮着」它也答得上来。
 
-> 状态卡的槽位是 `plugins.detail.section`（插件详情页）；0.2.1 的 Settings 已收进账户菜单，所以旧版「设置 → 插件」里不会出现它。
+> 页面注册在 `settings.section`（设置导航里的一项），因此和宿主的设置面板一起出现；不依赖 `plugins.detail.section`。如果宿主版本较老、没有 `configForms` 服务，配置表单会退化为只读提示，提示词注入与 `ha_status` 仍然工作。
 
 ## 配置令牌（二选一）
 
@@ -110,10 +112,16 @@ stats:
 ## 开发
 
 ```sh
+# 真机：打印模型看到的文本、注入块，并断言结果 ≤ 4 KB
 HA_TOKEN=... node test/run.mjs http://192.168.0.11:8123
+
+# 离线：挂载浏览器半，检查 settings.section 注册与配置表单能渲染
+node test/client.mjs
 ```
 
-离线 harness 用假 cordis 上下文挂载插件，打印模型看到的文本与注入块，并检查结果 ≤ 4 KB。
+`test/run.mjs` 用假 cordis 上下文挂载服务端半；`test/client.mjs` 用假 `__ModuleLoader__` + 极简 React 挂载客户端半，不依赖浏览器。
+
+> **本地 `link:` 的坑**：Node 会先解析符号链接的真实路径，再到真实路径的父目录找 `node_modules`。因此 `link:` 进 profile 的包**必须自己能看到 `@deepseek-ai/schemastery`**——要么在 profile 里正常 `pnpm add` 让它进虚拟 store，要么在插件目录建一个 `node_modules/@deepseek-ai/schemastery` 链接。否则 `Config` 为 `undefined`，设置页没有表单（工具与注入仍工作）。
 
 ## License
 
