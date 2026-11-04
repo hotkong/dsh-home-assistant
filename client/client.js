@@ -147,17 +147,13 @@ window.__ModuleLoader__.load({
           console.warn('[dsh-home-assistant] slots 服务不可用，状态卡未注册')
           return
         }
+        // 0.2.1 的插件详情页：包卡片下方的 section（本机渲染器确认存在）
+        slots.inject('plugins.detail.section', () =>
+          slots.register({ name: 'plugins.detail.section', key: ENTRY_ID, id: ENTRY_ID, order: 10 }, Card),
+        )
+        // 旧版/其它宿主：设置里的插件卡片
         slots.inject('settings.plugin.item', () =>
-          slots.register(
-            {
-              name: 'settings.plugin.item',
-              key: ENTRY_ID,
-              id: ENTRY_ID,
-              order: 10,
-              locale: ENTRY_ID,
-            },
-            Card,
-          ),
+          slots.register({ name: 'settings.plugin.item', key: ENTRY_ID, id: ENTRY_ID, order: 10, locale: ENTRY_ID }, Card),
         )
       },
     }

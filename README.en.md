@@ -27,6 +27,16 @@ dsh plugin --profile web add dsh-home-assistant
 
 Reload the page afterwards (or restart `dsh web`).
 
+## Using it
+
+Three entry points:
+
+1. **Configure** — open the **Plugins** page, pick `dsh-home-assistant`, and edit the host-generated form (URL, token, stats, …).
+2. **Watch** — the status card sits below that detail page, or type `/ha` in the conversation to print the status without a model round-trip.
+3. **Ask the agent** — "how is Home Assistant doing?" triggers `ha_status`; and since the environment block rides on every prompt, questions like "how many lights are on?" just work.
+
+> The card registers on `plugins.detail.section` (the plugin detail page) — Settings moved into the account menu on 0.2.1, so it is not under the old "Settings → Plugins".
+
 ## Token (pick one)
 
 **Recommended — credential reference** (never lands in the profile config or a market backup). Add to `$DSH_HOME/.credentials.yaml` (mode must be `0600`):
