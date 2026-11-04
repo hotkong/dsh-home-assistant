@@ -33,15 +33,17 @@ For local development, `link:` the repository into the profile's `dependencies` 
 
 Three entry points:
 
-1. **Configure** — open **Settings → Home Assistant**. The status card sits on top, and the form below edits the instance URL, display name, notes, credential reference, inline token, up to six stats, prompt injection, the workspace allowlist, and scale counting. **Save** applies immediately; no restart.
+1. **Configure** — open **Settings → Home Assistant**. The status card sits on top, and the form below edits the instance URL, display name, notes, the **access token** (saved into the credential store), up to six stats, prompt injection, the workspace allowlist, and scale counting. **Save** / **Save token** apply immediately; no restart.
 2. **Watch** — the same card shows the connection, token source, Core / Supervisor / OS versions, core state, scale, disk, stats and update time. It refreshes every 15 s; **Refresh status** forces a probe and **Open HA** jumps to the instance.
 3. **Ask the agent** — "how is Home Assistant doing?" triggers `ha_status`; and since the environment block rides on every prompt, questions like "how many lights are on?" just work.
 
 > The page registers on `settings.section`, so it appears in the host's Settings navigation; it does not depend on `plugins.detail.section`. On a host without the `configForms` service the form degrades to a read-only notice while prompt injection and `ha_status` keep working.
 
-## Token (pick one)
+## Access token
 
-**Recommended — credential reference** (never lands in the profile config or a market backup). Add to `$DSH_HOME/.credentials.yaml` (mode must be `0600`):
+**UI (recommended)**: Settings → Home Assistant → paste the long-lived token under **Access token** → **Save token**. It goes through the host credential service into `HA_TOKEN` in `$DSH_HOME/.credentials.yaml` — never into the profile config, logs, or a market backup. **Clear** removes it. The page shows the current resolution (`credential:HA_TOKEN` or `no token found`).
+
+**Manual/advanced (optional)**: you can maintain the credential file yourself (mode `0600`):
 
 ```yaml
 version: 1
@@ -49,9 +51,9 @@ refs:
   HA_TOKEN: <long-lived access token>
 ```
 
-The plugin reads `HA_TOKEN` by default; change `tokenRef` to use another name. **`tokenRef` is a key in the credential store, not the token itself**: renaming it to `FOO` also requires a `FOO: <token>` entry under `refs`, otherwise the plugin falls back to an environment variable of that name.
+The plugin reads `HA_TOKEN` by default. `tokenRef` is only for this advanced path — the UI does not expose it. Renaming it to `FOO` also requires a `FOO: <token>` entry under `refs`, otherwise the plugin falls back to an environment variable of that name.
 
-**Fallback — inline `token`** in Settings. Write-only, but stored **in plain text** in the profile's `cordis.patch.yml` and carried by the market's "include config files" backup. Use it only to try the plugin out.
+**Fallback (not recommended)**: an inline `token` in the profile YAML is stored **in plain text** in `cordis.patch.yml` and carried by the market's "include config files" backup.
 
 Create the token in Home Assistant under *Profile → Security → Long-lived access tokens*. For read-only use, prefer a **non-admin** user's token: state reads don't need admin, and a few counters (devices/areas/integrations) simply degrade to empty.
 
@@ -63,7 +65,7 @@ Create the token in Home Assistant under *Profile → Security → Long-lived ac
 | `label` | Display name used by the prompt block and the card |
 | `notes` | Free-form note (e.g. "restart takes ~5 min"), copied into the block |
 | `stats` | 1–6 entries, see below |
-| `tokenRef` / `token` | Token source |
+| `tokenRef` / `token` | Advanced: profile YAML only. The UI writes `HA_TOKEN` through the credential service; `tokenRef` is a key, not the token |
 | `inject.enabled` / `refreshSec` / `maxChars` | Global injection switch, refresh interval, character cap (default 600) |
 | `inject.workspaces` | Workspace allowlist: inject only under these absolute paths (subdirectories included); empty = every workspace. `ha_status` is unaffected |
 | `status.*` | Cache TTL, request timeout, whether to count the scale |

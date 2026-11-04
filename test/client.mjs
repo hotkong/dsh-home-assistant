@@ -79,8 +79,15 @@ const form = {
   mutate: async () => true,
 }
 
+const credentials = {
+  describe: async () => ({ ok: true, value: { HA_TOKEN: { configured: true, writable: true } } }),
+  set: async () => ({ ok: true }),
+  unset: async () => ({ ok: true }),
+}
+
 const registered = []
 const ctx = {
+  remote: { credentials },
   configForms: { get: (id) => (id === 'home-assistant' ? form : undefined) },
   slots: {
     inject(name, cb) {
@@ -136,7 +143,7 @@ try {
 }
 
 const text = out.text.join(' ')
-for (const expected of ['Home Assistant', '连接配置', '保存配置', '实例地址 baseUrl', '系统提示词注入', '状态探测', '仅在以下工作区自动注入', '当前令牌来源']) {
+for (const expected of ['Home Assistant', '连接配置', '保存配置', '实例地址 baseUrl', '系统提示词注入', '状态探测', '仅在以下工作区自动注入', '访问令牌', '当前来源']) {
   if (!text.includes(expected)) {
     console.error(`FAIL: rendered page is missing ${JSON.stringify(expected)}:\n${text}`)
     process.exit(1)

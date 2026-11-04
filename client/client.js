@@ -73,6 +73,7 @@ window.__ModuleLoader__.load({
       statRow: { display: 'flex', justifyContent: 'space-between', gap: 12, padding: '2px 0' },
       divider: { borderTop: '1px solid rgba(127,127,127,.18)', margin: '2px 0' },
       subsection: { display: 'grid', gap: 8, paddingTop: 2 },
+      tokenBox: { display: 'grid', gap: 8, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(127,127,127,.22)', background: 'rgba(127,127,127,.04)' },
       hint: { color: '#f59e0b' },
       error: { color: '#ef4444' },
       ok: { color: '#22c55e' },
@@ -117,8 +118,6 @@ window.__ModuleLoader__.load({
         baseUrl: value?.baseUrl ?? '',
         label: value?.label ?? '',
         notes: value?.notes ?? '',
-        tokenRef: value?.tokenRef ?? '',
-        token: '',
         stats: stats.map((stat) => ({
           title: stat?.title ?? '',
           entity: stat?.entity ?? '',
@@ -136,7 +135,115 @@ window.__ModuleLoader__.load({
       return h('label', { style: S.label }, h('span', { style: S.caption }, caption), children)
     }
 
-    function ConfigEditor({ form, snapshot, onSaved, authSource }) {
+    const TOKEN_REF = 'HA_TOKEN'
+
+    /**
+     * One token field, stored through the host's credential service.
+     *
+     * The reference name is an implementation detail: the UI always writes
+     * `HA_TOKEN`, and advanced users who need another ref/ENV fallback can edit
+     * the profile config by hand.
+     */
+    function TokenEditor({ credentials, authSource, onChanged }) {
+      const [value, setValue] = React.useState('')
+      const [info, setInfo] = React.useState({ phase: 'loading', configured: false, writable: false, message: '' })
+      const [busy, setBusy] = React.useState(false)
+
+      const refresh = React.useCallback(async () => {
+        if (!credentials) {
+          setInfo({ phase: 'unavailable', configured: false, writable: false, message: '宿主没有提供凭据服务' })
+          return
+        }
+        try {
+          const response = await credentials.describe([TOKEN_REF])
+          const view = response?.ok ? response.value?.[TOKEN_REF] : undefined
+          setInfo((current) => ({
+            phase: 'ready',
+            configured: view?.configured === true,
+            writable: view?.writable !== false,
+            message: current.message,
+          }))
+        } catch (error) {
+          setInfo({ phase: 'error', configured: false, writable: false, message: `读取凭据失败：${error?.message ?? error}` })
+        }
+      }, [credentials])
+
+      React.useEffect(() => {
+        refresh()
+      }, [refresh])
+
+      async function save() {
+        const token = value.trim()
+        if (!credentials || !token) return
+        setBusy(true)
+        try {
+          const response = await credentials.set(TOKEN_REF, token)
+          if (response && response.ok === false) throw new Error(response.error?.message ?? '宿主拒绝了这次写入')
+          setValue('')
+          setInfo((current) => ({ ...current, phase: 'ready', configured: true, message: '已保存到凭据库' }))
+          if (typeof onChanged === 'function') onChanged()
+          refresh()
+        } catch (error) {
+          setInfo((current) => ({ ...current, message: `保存失败：${error?.message ?? error}` }))
+        } finally {
+          setBusy(false)
+        }
+      }
+
+      async function clear() {
+        if (!credentials) return
+        if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(`清除凭据 ${TOKEN_REF}？`)) return
+        setBusy(true)
+        try {
+          await credentials.unset(TOKEN_REF)
+          setInfo((current) => ({ ...current, phase: 'ready', configured: false, message: '已清除' }))
+          if (typeof onChanged === 'function') onChanged()
+          refresh()
+        } catch (error) {
+          setInfo((current) => ({ ...current, message: `清除失败：${error?.message ?? error}` }))
+        } finally {
+          setBusy(false)
+        }
+      }
+
+      const configured = info.configured
+      const source = authSource && authSource !== 'none' ? authSource : configured ? `credential:${TOKEN_REF}` : '未找到令牌'
+      return h(
+        'div',
+        { style: S.tokenBox },
+        h(
+          'div',
+          { style: S.row },
+          h('span', { style: S.sectionTitle }, '访问令牌'),
+          h('span', { style: { ...S.badge, ...(configured ? {} : S.hint) } }, configured ? '已保存' : '未保存'),
+          h('span', { style: { flex: 1 } }),
+          configured ? h('button', { type: 'button', style: S.button, disabled: busy, onClick: clear }, '清除') : null,
+        ),
+        h('div', { style: S.caption }, `长期访问令牌存在 DSH 凭据库的 ${TOKEN_REF} 下，不会写进 profile 配置。`),
+        h(
+          'div',
+          { style: S.row },
+          h('input', {
+            style: { ...S.input, flex: '1 1 260px' },
+            type: 'password',
+            autoComplete: 'new-password',
+            value,
+            onChange: (e) => setValue(e.target.value),
+            placeholder: configured ? '••••••（重新填写以替换）' : '粘贴 HA 长期访问令牌',
+          }),
+          h('button', { type: 'button', style: S.primary, disabled: busy || !value.trim(), onClick: save }, busy ? '保存中…' : '保存令牌'),
+        ),
+        h(
+          'div',
+          { style: source === '未找到令牌' || authSource === 'inline' ? { ...S.caption, ...S.hint } : S.caption },
+          `当前来源：${source}${info.message ? ` · ${info.message}` : ''}${
+            authSource === 'inline' ? '。内联 token 会覆盖凭据库，建议在 profile 的 cordis.patch.yml 里删除 token 字段。' : ''
+          }`,
+        ),
+      )
+    }
+
+    function ConfigEditor({ form, snapshot, onSaved, authSource, credentials }) {
       const [draft, setDraft] = React.useState(() => draftFrom(snapshot.value))
       const [message, setMessage] = React.useState({ tone: 'muted', text: '' })
       const [busy, setBusy] = React.useState(false)
@@ -165,7 +272,6 @@ window.__ModuleLoader__.load({
             { op: 'set', path: ['baseUrl'], value: draft.baseUrl.trim() },
             { op: 'set', path: ['label'], value: draft.label.trim() },
             { op: 'set', path: ['notes'], value: draft.notes.trim() },
-            { op: 'set', path: ['tokenRef'], value: draft.tokenRef.trim() },
             {
               op: 'set',
               path: ['stats'],
@@ -190,11 +296,8 @@ window.__ModuleLoader__.load({
             },
             { op: 'set', path: ['status', 'showScale'], value: draft.showScale },
           ]
-          // Secrets are write-only: an empty box means "keep the stored value".
-          if (draft.token.trim()) ops.push({ op: 'set', path: ['token'], value: draft.token.trim() })
           const ok = await form.mutate(ops, snapshot.revision)
           if (ok) {
-            setDraft((current) => ({ ...current, token: '' }))
             setMessage({ tone: 'ok', text: '已保存，系统提示词与状态卡将在下一轮刷新时更新' })
             if (typeof onSaved === 'function') onSaved()
           } else {
@@ -255,38 +358,7 @@ window.__ModuleLoader__.load({
           { caption: '备注 notes（原样进入系统提示词，例如重启耗时、特殊约定）' },
           h('input', { style: S.input, value: draft.notes, onChange: (e) => patch('notes', e.target.value) }),
         ),
-        h(
-          'div',
-          { style: S.row },
-          h(
-            Field,
-            { caption: '凭据名 tokenRef（推荐；填凭据库里的键名，不是令牌本身）' },
-            h('input', {
-              style: S.input,
-              value: draft.tokenRef,
-              onChange: (e) => patch('tokenRef', e.target.value),
-              placeholder: 'HA_TOKEN',
-              spellCheck: false,
-            }),
-          ),
-          h(
-            Field,
-            { caption: '内联令牌 token（留空 = 不修改；会明文写入 profile 配置）' },
-            h('input', {
-              style: S.input,
-              type: 'password',
-              autoComplete: 'new-password',
-              value: draft.token,
-              onChange: (e) => patch('token', e.target.value),
-              placeholder: '••••••（已设置就留空）',
-            }),
-          ),
-        ),
-        h(
-          'div',
-          { style: authSource === 'none' ? { ...S.caption, ...S.hint } : S.caption },
-          `当前令牌来源：${authSource || '尚未探测'}。解析顺序：内联 token → 凭据名 → 同名环境变量。`,
-        ),
+        h(TokenEditor, { credentials, authSource, onChanged: onSaved }),
         h('div', { style: S.caption }, '观测项（最多 6 个；entity 与 template 二选一，template 需要管理员令牌）'),
         draft.stats.length
           ? draft.stats.map((stat, index) =>
@@ -494,28 +566,35 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function Page({ form }) {
+    function Page({ form, credentials }) {
       const [state, reload] = useStatus()
       const snapshot = useSnapshot(form)
       return h(
         'div',
         { style: S.page },
         h(StatusBlock, { state, reload, data: state.data }),
-        h(ConfigEditor, { form, snapshot, onSaved: () => reload(true), authSource: state.data?.auth_source }),
+        h(ConfigEditor, {
+          form,
+          snapshot,
+          onSaved: () => reload(true),
+          authSource: state.data?.auth_source,
+          credentials,
+        }),
         h(
           'div',
           { style: S.caption },
-          '提示：配置保存在 profile 层，所有 workspace 共享；令牌优先从凭据读取，不会出现在日志、提示词或这张卡片里。',
+          '提示：配置保存在 profile 层，所有 workspace 共享；令牌存在 DSH 凭据库，不会出现在日志、提示词或这张卡片里。',
         ),
       )
     }
 
     return {
       name: 'home-assistant',
-      inject: ['slots', 'configForms'],
+      inject: ['slots', 'configForms', 'remote.credentials'],
       apply(ctx) {
         const form = ctx.configForms.get(ENTRY_ID)
-        const Bound = () => h(Page, { form })
+        const credentials = ctx.remote.credentials
+        const Bound = () => h(Page, { form, credentials })
         ctx.slots.inject('settings.section', () =>
           ctx.slots.register(
             {

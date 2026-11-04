@@ -34,17 +34,17 @@ dsh plugin --profile web add dsh-home-assistant
 
 装好之后有三个入口：
 
-1. **配置**：打开 **设置（Settings）→ Home Assistant**。页面顶部是状态卡，下面是配置表单：实例地址、显示名、备注、凭据名、内联令牌、观测项（最多 6 个）、是否注入提示词、**注入工作区白名单**、是否统计规模。点「保存配置」立即生效，不需要重启。
+1. **配置**：打开 **设置（Settings）→ Home Assistant**。页面顶部是状态卡，下面是配置表单：实例地址、显示名、备注、**访问令牌**（保存到凭据库）、观测项（最多 6 个）、是否注入提示词、**注入工作区白名单**、是否统计规模。点「保存配置」/「保存令牌」立即生效，不需要重启。
 2. **看状态**：同一页的状态卡显示连接点、令牌来源、Core / Supervisor / OS 版本、运行状态、规模、磁盘、观测项与更新时间；每 15 秒自动刷新，也可点「刷新状态」强制探测；「打开 HA」直接跳转实例。
 3. **让 agent 用**：直接问「看下 HA 状态」，它会调 `ha_status`；而**每轮系统提示词本来就带着环境块**，所以更省事——直接问「家里现在几盏灯亮着」它也答得上来。
 
 > 页面注册在 `settings.section`（设置导航里的一项），因此和宿主的设置面板一起出现；不依赖 `plugins.detail.section`。如果宿主版本较老、没有 `configForms` 服务，配置表单会退化为只读提示，提示词注入与 `ha_status` 仍然工作。
 
-## 配置令牌（二选一）
+## 访问令牌
 
-**推荐：凭据引用（不进备份、不进 `--dump-config`）**
+**UI 推荐**：设置 → Home Assistant →「访问令牌」粘贴长期令牌 →「保存令牌」。它通过宿主凭据服务写入 `$DSH_HOME/.credentials.yaml` 的 `HA_TOKEN`，**不会**进 profile 配置、日志或市场备份；旁边的「清除」可移除。页面会显示当前解析结果（如 `credential:HA_TOKEN` 或 `未找到令牌`）。
 
-把令牌写进 `$DSH_HOME/.credentials.yaml`（权限必须是 `0600`）：
+**手动/高级（可选）**：也可以自己维护凭据文件（权限必须是 `0600`）：
 
 ```yaml
 version: 1
@@ -52,12 +52,9 @@ refs:
   HA_TOKEN: <你的长期访问令牌>
 ```
 
-插件默认读 `HA_TOKEN`；想换名字就改 `tokenRef`。**`tokenRef` 是凭据库里的键名，不是令牌本身**：改成 `FOO`，就要在 `.credentials.yaml` 的 `refs` 下加一条 `FOO: <令牌>`，否则会退到同名环境变量。
+插件默认读 `HA_TOKEN`。`tokenRef` 是给这种高级场景用的**凭据键名**，UI 不暴露它：默认 `HA_TOKEN`；改成 `FOO` 就要在 `refs` 下加 `FOO: <令牌>`，否则会退到同名环境变量。
 
-也支持环境变量 `HA_TOKEN`（启动 `dsh` 的环境里）。
-
-**兜底：内联 `token`**
-设置里可以直接填。它只写不可读，但会**明文写进 profile 的 `cordis.patch.yml`**，并会进入插件市场的「包含配置文件」备份——只建议临时用。
+**兜底（不建议）**：在 profile YAML 里写内联 `token`，会**明文**落在 `cordis.patch.yml` 并进入「包含配置文件」的备份。
 
 令牌在 HA 的「用户资料 → 安全 → 长期访问令牌」里创建。只读场景建议用**非管理员用户**的令牌：状态读取不需要管理员，个别字段（设备/区域/集成计数）会降级为空。
 
@@ -69,7 +66,7 @@ refs:
 | `label` | 显示名，进注入块与状态卡 |
 | `notes` | 自由备注（如「重启约 5 分钟」），原样进注入块 |
 | `stats` | 1–6 个观测项，见下 |
-| `tokenRef` / `token` | 令牌来源，见上 |
+| `tokenRef` / `token` | 高级：仅 profile YAML。UI 通过凭据服务固定写 `HA_TOKEN`；`tokenRef` 是键名，不是令牌 |
 | `inject.enabled` / `refreshSec` / `maxChars` | 全局注入开关、刷新间隔、字数上限（默认 600） |
 | `inject.workspaces` | 工作区白名单：只在这些绝对路径（含子目录）自动注入；空数组 = 所有工作区。`ha_status` 不受影响 |
 | `status.refreshSec` / `timeoutMs` / `showScale` | 状态缓存 TTL、请求超时、是否统计规模 |
