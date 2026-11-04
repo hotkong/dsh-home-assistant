@@ -136,37 +136,42 @@ window.__ModuleLoader__.load({
     }
 
     const TOKEN_REF = 'HA_TOKEN'
+    const TOKEN_ROUTE = '/dsh-home-assistant/token'
+
+    async function readJson(response) {
+      try {
+        return await response.json()
+      } catch {
+        return {}
+      }
+    }
 
     /**
-     * One token field, stored through the host's credential service.
-     *
-     * The reference name is an implementation detail: the UI always writes
-     * `HA_TOKEN`, and advanced users who need another ref/ENV fallback can edit
-     * the profile config by hand.
+     * One token field. The server half owns the credential-store write; the
+     * browser only talks to this plugin's same-origin route, so a missing
+     * credentials client service can never fail the client boot.
      */
-    function TokenEditor({ credentials, authSource, onChanged }) {
+    function TokenEditor({ authSource, onChanged }) {
       const [value, setValue] = React.useState('')
-      const [info, setInfo] = React.useState({ phase: 'loading', configured: false, writable: false, message: '' })
+      const [info, setInfo] = React.useState({ phase: 'loading', configured: false, writable: false, ref: TOKEN_REF, message: '' })
       const [busy, setBusy] = React.useState(false)
 
       const refresh = React.useCallback(async () => {
-        if (!credentials) {
-          setInfo({ phase: 'unavailable', configured: false, writable: false, message: '宿主没有提供凭据服务' })
-          return
-        }
         try {
-          const response = await credentials.describe([TOKEN_REF])
-          const view = response?.ok ? response.value?.[TOKEN_REF] : undefined
+          const response = await fetch(TOKEN_ROUTE, { cache: 'no-store' })
+          const body = await readJson(response)
+          if (!response.ok || body.ok === false) throw new Error(body.error ?? `HTTP ${response.status}`)
           setInfo((current) => ({
             phase: 'ready',
-            configured: view?.configured === true,
-            writable: view?.writable !== false,
+            configured: body.configured === true,
+            writable: body.writable !== false,
+            ref: typeof body.ref === 'string' && body.ref ? body.ref : TOKEN_REF,
             message: current.message,
           }))
         } catch (error) {
-          setInfo({ phase: 'error', configured: false, writable: false, message: `读取凭据失败：${error?.message ?? error}` })
+          setInfo((current) => ({ ...current, phase: 'error', message: `读取凭据失败：${error?.message ?? error}` }))
         }
-      }, [credentials])
+      }, [])
 
       React.useEffect(() => {
         refresh()
@@ -174,11 +179,16 @@ window.__ModuleLoader__.load({
 
       async function save() {
         const token = value.trim()
-        if (!credentials || !token) return
+        if (!token) return
         setBusy(true)
         try {
-          const response = await credentials.set(TOKEN_REF, token)
-          if (response && response.ok === false) throw new Error(response.error?.message ?? '宿主拒绝了这次写入')
+          const response = await fetch(TOKEN_ROUTE, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ token }),
+          })
+          const body = await readJson(response)
+          if (!response.ok || body.ok === false) throw new Error(body.error ?? `HTTP ${response.status}`)
           setValue('')
           setInfo((current) => ({ ...current, phase: 'ready', configured: true, message: '已保存到凭据库' }))
           if (typeof onChanged === 'function') onChanged()
@@ -191,11 +201,12 @@ window.__ModuleLoader__.load({
       }
 
       async function clear() {
-        if (!credentials) return
-        if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(`清除凭据 ${TOKEN_REF}？`)) return
+        if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(`清除凭据 ${info.ref}？`)) return
         setBusy(true)
         try {
-          await credentials.unset(TOKEN_REF)
+          const response = await fetch(TOKEN_ROUTE, { method: 'DELETE' })
+          const body = await readJson(response)
+          if (!response.ok || body.ok === false) throw new Error(body.error ?? `HTTP ${response.status}`)
           setInfo((current) => ({ ...current, phase: 'ready', configured: false, message: '已清除' }))
           if (typeof onChanged === 'function') onChanged()
           refresh()
@@ -207,7 +218,7 @@ window.__ModuleLoader__.load({
       }
 
       const configured = info.configured
-      const source = authSource && authSource !== 'none' ? authSource : configured ? `credential:${TOKEN_REF}` : '未找到令牌'
+      const source = authSource && authSource !== 'none' ? authSource : configured ? `credential:${info.ref}` : '未找到令牌'
       return h(
         'div',
         { style: S.tokenBox },
@@ -219,7 +230,7 @@ window.__ModuleLoader__.load({
           h('span', { style: { flex: 1 } }),
           configured ? h('button', { type: 'button', style: S.button, disabled: busy, onClick: clear }, '清除') : null,
         ),
-        h('div', { style: S.caption }, `长期访问令牌存在 DSH 凭据库的 ${TOKEN_REF} 下，不会写进 profile 配置。`),
+        h('div', { style: S.caption }, `长期访问令牌存在 DSH 凭据库的 ${info.ref} 下，不会写进 profile 配置。`),
         h(
           'div',
           { style: S.row },
@@ -243,7 +254,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function ConfigEditor({ form, snapshot, onSaved, authSource, credentials }) {
+    function ConfigEditor({ form, snapshot, onSaved, authSource }) {
       const [draft, setDraft] = React.useState(() => draftFrom(snapshot.value))
       const [message, setMessage] = React.useState({ tone: 'muted', text: '' })
       const [busy, setBusy] = React.useState(false)
@@ -358,7 +369,7 @@ window.__ModuleLoader__.load({
           { caption: '备注 notes（原样进入系统提示词，例如重启耗时、特殊约定）' },
           h('input', { style: S.input, value: draft.notes, onChange: (e) => patch('notes', e.target.value) }),
         ),
-        h(TokenEditor, { credentials, authSource, onChanged: onSaved }),
+        h(TokenEditor, { authSource, onChanged: onSaved }),
         h('div', { style: S.caption }, '观测项（最多 6 个；entity 与 template 二选一，template 需要管理员令牌）'),
         draft.stats.length
           ? draft.stats.map((stat, index) =>
@@ -566,7 +577,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function Page({ form, credentials }) {
+    function Page({ form }) {
       const [state, reload] = useStatus()
       const snapshot = useSnapshot(form)
       return h(
@@ -578,7 +589,6 @@ window.__ModuleLoader__.load({
           snapshot,
           onSaved: () => reload(true),
           authSource: state.data?.auth_source,
-          credentials,
         }),
         h(
           'div',
@@ -590,22 +600,28 @@ window.__ModuleLoader__.load({
 
     return {
       name: 'home-assistant',
-      inject: ['slots', 'configForms', 'remote.credentials'],
+      inject: ['slots', 'configForms'],
       apply(ctx) {
-        const form = ctx.configForms.get(ENTRY_ID)
-        const credentials = ctx.remote.credentials
-        const Bound = () => h(Page, { form, credentials })
-        ctx.slots.inject('settings.section', () =>
-          ctx.slots.register(
-            {
-              name: 'settings.section',
-              id: ENTRY_ID,
-              order: 40,
-              label: () => 'Home Assistant',
-            },
-            Bound,
-          ),
-        )
+        // Never let the settings page take the whole client boot down. The token
+        // editor talks to this plugin's own same-origin route, so it does not
+        // depend on any optional browser service.
+        try {
+          const form = ctx.configForms.get(ENTRY_ID)
+          const Bound = () => h(Page, { form })
+          ctx.slots.inject('settings.section', () =>
+            ctx.slots.register(
+              {
+                name: 'settings.section',
+                id: ENTRY_ID,
+                order: 40,
+                label: () => 'Home Assistant',
+              },
+              Bound,
+            ),
+          )
+        } catch (error) {
+          console.warn('[dsh-home-assistant] 设置页未注册（插件其余部分不受影响）：', error)
+        }
       },
     }
   },

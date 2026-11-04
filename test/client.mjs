@@ -88,6 +88,11 @@ const credentials = {
 const registered = []
 const ctx = {
   remote: { credentials },
+  get(name) {
+    if (name === 'remote') return { credentials }
+    if (name === 'remote.credentials') return credentials
+    return undefined
+  },
   configForms: { get: (id) => (id === 'home-assistant' ? form : undefined) },
   slots: {
     inject(name, cb) {
@@ -159,6 +164,30 @@ if (!out.value.includes('/data/dsh/home/homeassistant')) {
 }
 if (!out.placeholder.includes('http://192.168.0.11:8123')) {
   console.error('FAIL: baseUrl placeholder missing')
+  process.exit(1)
+}
+
+// A host without the credentials service must not fail the whole page: apply
+// only needs slots/configForms, and the token editor degrades to a notice.
+const registeredWithoutCredentials = []
+const minimalCtx = {
+  configForms: { get: (id) => (id === 'home-assistant' ? form : undefined) },
+  slots: {
+    inject: (_name, cb) => cb(),
+    register: (entry, component) => {
+      registeredWithoutCredentials.push({ entry, component })
+      return () => {}
+    },
+  },
+}
+try {
+  plugin.apply(minimalCtx)
+} catch (error) {
+  console.error('FAIL: client apply requires the credentials service:', error)
+  process.exit(1)
+}
+if (registeredWithoutCredentials.length !== 1) {
+  console.error('FAIL: settings.section was not registered without credentials')
   process.exit(1)
 }
 
