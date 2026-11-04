@@ -136,7 +136,7 @@ window.__ModuleLoader__.load({
       return h('label', { style: S.label }, h('span', { style: S.caption }, caption), children)
     }
 
-    function ConfigEditor({ form, snapshot, onSaved }) {
+    function ConfigEditor({ form, snapshot, onSaved, authSource }) {
       const [draft, setDraft] = React.useState(() => draftFrom(snapshot.value))
       const [message, setMessage] = React.useState({ tone: 'muted', text: '' })
       const [busy, setBusy] = React.useState(false)
@@ -260,7 +260,7 @@ window.__ModuleLoader__.load({
           { style: S.row },
           h(
             Field,
-            { caption: '凭据名 tokenRef（推荐；令牌存 $DSH_HOME/.credentials.yaml）' },
+            { caption: '凭据名 tokenRef（推荐；填凭据库里的键名，不是令牌本身）' },
             h('input', {
               style: S.input,
               value: draft.tokenRef,
@@ -281,6 +281,11 @@ window.__ModuleLoader__.load({
               placeholder: '••••••（已设置就留空）',
             }),
           ),
+        ),
+        h(
+          'div',
+          { style: authSource === 'none' ? { ...S.caption, ...S.hint } : S.caption },
+          `当前令牌来源：${authSource || '尚未探测'}。解析顺序：内联 token → 凭据名 → 同名环境变量。`,
         ),
         h('div', { style: S.caption }, '观测项（最多 6 个；entity 与 template 二选一，template 需要管理员令牌）'),
         draft.stats.length
@@ -496,7 +501,7 @@ window.__ModuleLoader__.load({
         'div',
         { style: S.page },
         h(StatusBlock, { state, reload, data: state.data }),
-        h(ConfigEditor, { form, snapshot, onSaved: () => reload(true) }),
+        h(ConfigEditor, { form, snapshot, onSaved: () => reload(true), authSource: state.data?.auth_source }),
         h(
           'div',
           { style: S.caption },

@@ -49,7 +49,7 @@ refs:
   HA_TOKEN: <long-lived access token>
 ```
 
-The plugin reads `HA_TOKEN` by default; change `tokenRef` to use another name. A plain `HA_TOKEN` environment variable works too.
+The plugin reads `HA_TOKEN` by default; change `tokenRef` to use another name. **`tokenRef` is a key in the credential store, not the token itself**: renaming it to `FOO` also requires a `FOO: <token>` entry under `refs`, otherwise the plugin falls back to an environment variable of that name.
 
 **Fallback — inline `token`** in Settings. Write-only, but stored **in plain text** in the profile's `cordis.patch.yml` and carried by the market's "include config files" backup. Use it only to try the plugin out.
 

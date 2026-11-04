@@ -52,7 +52,7 @@ refs:
   HA_TOKEN: <你的长期访问令牌>
 ```
 
-插件默认读 `HA_TOKEN`；想换名字就改 `tokenRef`。
+插件默认读 `HA_TOKEN`；想换名字就改 `tokenRef`。**`tokenRef` 是凭据库里的键名，不是令牌本身**：改成 `FOO`，就要在 `.credentials.yaml` 的 `refs` 下加一条 `FOO: <令牌>`，否则会退到同名环境变量。
 
 也支持环境变量 `HA_TOKEN`（启动 `dsh` 的环境里）。
 
