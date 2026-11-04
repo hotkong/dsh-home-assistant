@@ -121,7 +121,7 @@ node test/prompt.mjs
 node test/client.mjs
 ```
 
-`test/run.mjs` mounts the server half against a fake cordis context; `test/prompt.mjs` covers the injection switch and workspace allowlist; `test/client.mjs` mounts the client half against a fake `__ModuleLoader__` plus a minimal React stand-in, no browser required.
+`test/run.mjs` mounts the server half against a fake cordis context; `test/prompt.mjs` covers the injection switch and workspace allowlist; `test/client.mjs` mounts the client half against a fake `__ModuleLoader__` plus a minimal React stand-in, and statically checks that every `ctx.*` access is declared in `inject`; no browser required.
 
 > **Local `link:` gotcha**: Node resolves a symlinked package to its real path before walking up for `node_modules`. A `link:`-ed plugin therefore needs its own view of `@deepseek-ai/schemastery` — either install it normally into the profile (so pnpm's store provides it) or add a `node_modules/@deepseek-ai/schemastery` link inside the plugin directory. Otherwise `Config` is `undefined`, the settings form disappears, and tools/injection keep working.
 

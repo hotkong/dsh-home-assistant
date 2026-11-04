@@ -15,6 +15,27 @@ import { dirname, join } from 'node:path'
 const here = dirname(fileURLToPath(import.meta.url))
 const clientPath = join(here, '..', 'client', 'client.js')
 
+const source = readFileSync(clientPath, 'utf8')
+/**
+ * Static guard for the class of bug that broke web boot: reading a ctx service
+ * that was never declared in inject. Cordis throws at apply time, and the fake
+ * context below cannot reproduce that, so check the source itself.
+ */
+const injectMatch = /inject:\s*\[([^\]]*)\]/.exec(source)
+if (injectMatch === null) {
+  console.error('FAIL: could not find the plugin inject declaration')
+  process.exit(1)
+}
+const injected = new Set([...injectMatch[1].matchAll(/['"]([^'"]+)['"]/g)].map((match) => match[1]))
+const accessed = new Set([...source.matchAll(/\bctx\.([A-Za-z_$][\w$]*)/g)].map((match) => match[1]))
+for (const name of accessed) {
+  if (name === 'get') continue
+  if (!injected.has(name)) {
+    console.error(`FAIL: ctx.${name} is read but "${name}" is not declared in inject [${[...injected].join(', ')}]`)
+    process.exit(1)
+  }
+}
+
 /** Minimal React: enough for the module's hooks to run outside a browser. */
 const React = {
   Fragment: Symbol('Fragment'),
@@ -183,7 +204,7 @@ const minimalCtx = {
 try {
   plugin.apply(minimalCtx)
 } catch (error) {
-  console.error('FAIL: client apply requires the credentials service:', error)
+  console.error('FAIL: client apply threw without the optional credentials service:', error)
   process.exit(1)
 }
 if (registeredWithoutCredentials.length !== 1) {
