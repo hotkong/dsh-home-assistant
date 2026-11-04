@@ -375,6 +375,11 @@ window.__ModuleLoader__.load({
         slots.inject('settings.plugin.item', () =>
           slots.register({ name: 'settings.plugin.item', key: ENTRY_ID, id: ENTRY_ID, order: 10, locale: ENTRY_ID }, Bound),
         )
+        // Older/portable settings UI: a dedicated page, registered the same way
+        // dsh-chat-manager does on this host.
+        slots.inject('settings.section', () =>
+          slots.register({ name: 'settings.section', id: ENTRY_ID, order: 40, priority: -10, label: () => 'Home Assistant' }, Bound),
+        )
       },
     }
   },
