@@ -63,7 +63,7 @@ Create the token in Home Assistant under *Profile → Security → Long-lived ac
 |---|---|
 | `baseUrl` | Instance URL with port, e.g. `http://192.168.0.11:8123` |
 | `label` | Display name used by the prompt block and the card |
-| `notes` | Free-form note (e.g. "restart takes ~5 min"), copied into the block |
+| `notes` | Free-form note (e.g. "restart takes ~5 min"), copied into the injection block only; no effect while injection is off |
 | `stats` | 1–6 entries, see below |
 | `tokenRef` / `token` | Advanced: profile YAML only. The UI writes `HA_TOKEN` through the credential service; `tokenRef` is a key, not the token |
 | `inject.enabled` / `refreshSec` / `maxChars` | Global injection switch, refresh interval, character cap (default 600) |

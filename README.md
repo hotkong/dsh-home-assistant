@@ -64,7 +64,7 @@ refs:
 |---|---|
 | `baseUrl` | HA 地址，含端口，如 `http://192.168.0.11:8123` |
 | `label` | 显示名，进注入块与状态卡 |
-| `notes` | 自由备注（如「重启约 5 分钟」），原样进注入块 |
+| `notes` | 自由备注（如「重启约 5 分钟」），只写入注入块；仅注入开启时生效 |
 | `stats` | 1–6 个观测项，见下 |
 | `tokenRef` / `token` | 高级：仅 profile YAML。UI 通过凭据服务固定写 `HA_TOKEN`；`tokenRef` 是键名，不是令牌 |
 | `inject.enabled` / `refreshSec` / `maxChars` | 全局注入开关、刷新间隔、字数上限（默认 600） |
