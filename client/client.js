@@ -135,7 +135,6 @@ window.__ModuleLoader__.load({
       return h('label', { style: S.label }, h('span', { style: S.caption }, caption), children)
     }
 
-    const TOKEN_REF = 'HA_TOKEN'
     const TOKEN_ROUTE = '/dsh-home-assistant/token'
 
     async function readJson(response) {
@@ -153,7 +152,7 @@ window.__ModuleLoader__.load({
      */
     function TokenEditor({ authSource, onChanged }) {
       const [value, setValue] = React.useState('')
-      const [info, setInfo] = React.useState({ phase: 'loading', configured: false, writable: false, ref: TOKEN_REF, message: '' })
+      const [info, setInfo] = React.useState({ phase: 'loading', configured: false, writable: false, message: '' })
       const [busy, setBusy] = React.useState(false)
 
       const refresh = React.useCallback(async () => {
@@ -165,7 +164,6 @@ window.__ModuleLoader__.load({
             phase: 'ready',
             configured: body.configured === true,
             writable: body.writable !== false,
-            ref: typeof body.ref === 'string' && body.ref ? body.ref : TOKEN_REF,
             message: current.message,
           }))
         } catch (error) {
@@ -201,7 +199,7 @@ window.__ModuleLoader__.load({
       }
 
       async function clear() {
-        if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(`清除凭据 ${info.ref}？`)) return
+        if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm('清除已保存的访问令牌？')) return
         setBusy(true)
         try {
           const response = await fetch(TOKEN_ROUTE, { method: 'DELETE' })
@@ -218,7 +216,17 @@ window.__ModuleLoader__.load({
       }
 
       const configured = info.configured
-      const source = authSource && authSource !== 'none' ? authSource : configured ? `credential:${info.ref}` : '未找到令牌'
+      const statusText =
+        authSource === 'inline'
+          ? '当前使用 profile 里的内联令牌（高级配置），它会覆盖凭据库。'
+          : typeof authSource === 'string' && authSource.startsWith('env:')
+            ? '当前使用环境变量里的令牌；凭据库中的令牌会优先。'
+            : authSource && authSource !== 'none'
+              ? '令牌已配置，插件会自动读取。'
+              : configured
+                ? '令牌已保存，等待下一次状态探测。'
+                : '还没有保存令牌。'
+      const warn = authSource === 'inline' || (!configured && authSource === 'none')
       return h(
         'div',
         { style: S.tokenBox },
@@ -230,7 +238,7 @@ window.__ModuleLoader__.load({
           h('span', { style: { flex: 1 } }),
           configured ? h('button', { type: 'button', style: S.button, disabled: busy, onClick: clear }, '清除') : null,
         ),
-        h('div', { style: S.caption }, `长期访问令牌存在 DSH 凭据库的 ${info.ref} 下，不会写进 profile 配置。`),
+        h('div', { style: S.caption }, '长期访问令牌保存在 DSH 凭据库，不会写进 profile 配置。'),
         h(
           'div',
           { style: S.row },
@@ -246,10 +254,8 @@ window.__ModuleLoader__.load({
         ),
         h(
           'div',
-          { style: source === '未找到令牌' || authSource === 'inline' ? { ...S.caption, ...S.hint } : S.caption },
-          `当前来源：${source}${info.message ? ` · ${info.message}` : ''}${
-            authSource === 'inline' ? '。内联 token 会覆盖凭据库，建议在 profile 的 cordis.patch.yml 里删除 token 字段。' : ''
-          }`,
+          { style: warn ? { ...S.caption, ...S.hint } : S.caption },
+          `${statusText}${info.message ? ` · ${info.message}` : ''}`,
         ),
       )
     }

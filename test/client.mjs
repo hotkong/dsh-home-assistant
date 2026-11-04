@@ -169,7 +169,7 @@ try {
 }
 
 const text = out.text.join(' ')
-for (const expected of ['Home Assistant', '连接配置', '保存配置', '实例地址 baseUrl', '系统提示词注入', '状态探测', '仅在以下工作区自动注入', '访问令牌', '当前来源']) {
+for (const expected of ['Home Assistant', '连接配置', '保存配置', '实例地址 baseUrl', '系统提示词注入', '状态探测', '仅在以下工作区自动注入', '访问令牌', '长期访问令牌保存在 DSH 凭据库', '还没有保存令牌']) {
   if (!text.includes(expected)) {
     console.error(`FAIL: rendered page is missing ${JSON.stringify(expected)}:\n${text}`)
     process.exit(1)
