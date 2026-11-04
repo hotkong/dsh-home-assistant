@@ -71,6 +71,8 @@ window.__ModuleLoader__.load({
         opacity: 0.8,
       },
       statRow: { display: 'flex', justifyContent: 'space-between', gap: 12, padding: '2px 0' },
+      divider: { borderTop: '1px solid rgba(127,127,127,.18)', margin: '2px 0' },
+      subsection: { display: 'grid', gap: 8, paddingTop: 2 },
       hint: { color: '#f59e0b' },
       error: { color: '#ef4444' },
       ok: { color: '#22c55e' },
@@ -337,37 +339,63 @@ window.__ModuleLoader__.load({
             },
             '+ 添加观测项',
           ),
+          h('span', { style: S.caption }, `${draft.stats.length} / 6`),
+        ),
+        h('div', { style: S.divider }),
+        h(
+          'div',
+          { style: S.subsection },
+          h('div', { style: S.sectionTitle }, '系统提示词注入'),
           h(
             'label',
-            { style: { ...S.row, gap: 6 } },
+            { style: { ...S.row, gap: 8 } },
             h('input', {
               type: 'checkbox',
               checked: draft.injectEnabled,
               onChange: (e) => patch('injectEnabled', e.target.checked),
             }),
-            h('span', { style: S.caption }, '注入系统提示词'),
+            h('span', null, '在每个请求的系统提示词里带上 <home_assistant> 环境块'),
           ),
           h(
+            'div',
+            { style: S.caption },
+            draft.injectEnabled
+              ? '关闭后所有对话都不再自动注入；ha_status 工具仍然可用。'
+              : '当前已关闭：不会自动注入，仍可随时调用 ha_status。',
+          ),
+          h(
+            Field,
+            { caption: '仅在以下工作区自动注入（每行一个绝对路径；留空 = 所有工作区）' },
+            h('textarea', {
+              style: {
+                ...S.input,
+                minHeight: 54,
+                resize: 'vertical',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                opacity: draft.injectEnabled ? 1 : 0.5,
+              },
+              value: draft.workspaces,
+              onChange: (e) => patch('workspaces', e.target.value),
+              placeholder: '/data/dsh/home/homeassistant',
+              spellCheck: false,
+            }),
+          ),
+        ),
+        h('div', { style: S.divider }),
+        h(
+          'div',
+          { style: S.subsection },
+          h('div', { style: S.sectionTitle }, '状态探测'),
+          h(
             'label',
-            { style: { ...S.row, gap: 6 } },
+            { style: { ...S.row, gap: 8 } },
             h('input', {
               type: 'checkbox',
               checked: draft.showScale,
               onChange: (e) => patch('showScale', e.target.checked),
             }),
-            h('span', { style: S.caption }, '统计实体 / 设备 / 区域数量'),
+            h('span', null, '统计实体 / 设备 / 区域 / 集成数量'),
           ),
-        ),
-        h(
-          Field,
-          { caption: '仅在以下工作区自动注入（每行一个绝对路径；留空 = 所有工作区）' },
-          h('textarea', {
-            style: { ...S.input, minHeight: 54, resize: 'vertical', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' },
-            value: draft.workspaces,
-            onChange: (e) => patch('workspaces', e.target.value),
-            placeholder: '/data/dsh/home/homeassistant',
-            spellCheck: false,
-          }),
         ),
         message.text ? h('div', { style: message.tone === 'error' ? S.error : message.tone === 'ok' ? S.ok : S.muted }, message.text) : null,
       )
