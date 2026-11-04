@@ -7,12 +7,12 @@ English | [中文](./README.md)
 A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin: open **Settings → Home Assistant**, fill in the URL, token and 1–6 values you care about, and it injects a compact environment block into the system prompt, exposes a read-only `ha_status` tool, and renders a live status card.
 
 ```text
-<home_assistant label="Living room HA" url="http://192.168.0.11:8123">
+<home_assistant label="Living room HA" url="http://homeassistant.local:8123">
 Core 2026.10.4 ｜ Supervisor 2026.10.4 ｜ OS 18.3.1
 状态：RUNNING（recovery_mode=false，watchdog=true）
-规模：3965 实体 / 497 设备 / 36 区域 / 74 集成
+规模：42 实体 / 7 设备 / 3 区域 / 5 集成
 磁盘：已用 13.8/27.7 GB
-统计：亮灯数 50 ｜ 室内温度 22.0 °C ｜ 在家 2
+统计：亮灯数 3 ｜ 室内温度 22.0 °C ｜ 在家 1
 更新：2026-11-04 18:14 (+08:00)
 </home_assistant>
 ```
@@ -61,7 +61,7 @@ Create the token in Home Assistant under *Profile → Security → Long-lived ac
 
 | Field | Meaning |
 |---|---|
-| `baseUrl` | Instance URL with port, e.g. `http://192.168.0.11:8123` |
+| `baseUrl` | Instance URL with port, e.g. `http://homeassistant.local:8123` |
 | `label` | Display name used by the prompt block and the card |
 | `notes` | Free-form note (e.g. "restart takes ~5 min"), copied into the injection block only; no effect while injection is off |
 | `stats` | 1–6 entries, see below |
@@ -112,7 +112,7 @@ Optional `attribute` reads one attribute. A failing entry renders `—` without 
 
 ```sh
 # Against a real instance: print the model-facing text + prompt block, assert ≤ 4 KB
-HA_TOKEN=... node test/run.mjs http://192.168.0.11:8123
+HA_TOKEN=... node test/run.mjs http://homeassistant.local:8123
 
 # Offline: injection switch + workspace allowlist
 node test/prompt.mjs

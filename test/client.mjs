@@ -86,7 +86,7 @@ if (!Array.isArray(plugin.inject) || !plugin.inject.includes('slots') || !plugin
 }
 
 const value = {
-  baseUrl: 'http://192.168.0.11:8123',
+  baseUrl: 'http://homeassistant.local:8123',
   tokenRef: 'HA_TOKEN',
   label: '客厅 HA',
   notes: '重启约 4.5–5 分钟',
@@ -175,7 +175,7 @@ for (const expected of ['Home Assistant', '保存配置', '实例地址 baseUrl'
     process.exit(1)
   }
 }
-if (!out.value.includes('http://192.168.0.11:8123') || !out.value.includes('客厅 HA')) {
+if (!out.value.includes('http://homeassistant.local:8123') || !out.value.includes('客厅 HA')) {
   console.error('FAIL: configuration inputs were not populated from the form snapshot:', out.value)
   process.exit(1)
 }
@@ -183,7 +183,7 @@ if (!out.value.includes('/data/dsh/home/homeassistant')) {
   console.error('FAIL: workspace allowlist textarea was not populated:', out.value)
   process.exit(1)
 }
-if (!out.placeholder.includes('http://192.168.0.11:8123')) {
+if (!out.placeholder.includes('http://homeassistant.local:8123')) {
   console.error('FAIL: baseUrl placeholder missing')
   process.exit(1)
 }

@@ -7,12 +7,12 @@
 一个 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 插件：在 **设置 → Home Assistant** 里填好地址、令牌和 1–6 个「要看的值」，插件会把环境基线注入系统提示词，并提供一个只读的 `ha_status` 工具和一张实时状态卡。
 
 ```text
-<home_assistant label="客厅 HA" url="http://192.168.0.11:8123">
+<home_assistant label="客厅 HA" url="http://homeassistant.local:8123">
 Core 2026.10.4 ｜ Supervisor 2026.10.4 ｜ OS 18.3.1
 状态：RUNNING（recovery_mode=false，watchdog=true）
-规模：3965 实体 / 497 设备 / 36 区域 / 74 集成
+规模：42 实体 / 7 设备 / 3 区域 / 5 集成
 磁盘：已用 13.8/27.7 GB
-统计：亮灯数 50 ｜ 室内温度 22.0 °C ｜ 在家 2
+统计：亮灯数 3 ｜ 室内温度 22.0 °C ｜ 在家 1
 备注：重启约 4.5–5 分钟；YAML 配置文件无 API，控制走 HA 原生界面
 更新：2026-11-04 16:34 (+08:00)
 </home_assistant>
@@ -62,7 +62,7 @@ refs:
 
 | 字段 | 说明 |
 |---|---|
-| `baseUrl` | HA 地址，含端口，如 `http://192.168.0.11:8123` |
+| `baseUrl` | HA 地址，含端口，如 `http://homeassistant.local:8123` |
 | `label` | 显示名，进注入块与状态卡 |
 | `notes` | 自由备注（如「重启约 5 分钟」），只写入注入块；仅注入开启时生效 |
 | `stats` | 1–6 个观测项，见下 |
@@ -121,7 +121,7 @@ stats:
 
 ```sh
 # 真机：打印模型看到的文本、注入块，并断言结果 ≤ 4 KB
-HA_TOKEN=... node test/run.mjs http://192.168.0.11:8123
+HA_TOKEN=... node test/run.mjs http://homeassistant.local:8123
 
 # 离线：注入开关与工作区白名单
 node test/prompt.mjs

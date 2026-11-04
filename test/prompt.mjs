@@ -12,7 +12,7 @@ const snapshot = {
   ok: true,
   at: Date.now(),
   label: '客厅 HA',
-  url: 'http://192.168.0.11:8123',
+  url: 'http://homeassistant.local:8123',
   notes: '',
   version: { core: '2026.10.4', supervisor: '2026.10.4', os: '18.3.1' },
   core_state: 'RUNNING',
@@ -20,8 +20,8 @@ const snapshot = {
   recovery_mode: false,
   watchdog: true,
   disk: { used_gb: 13.8, total_gb: 27.7 },
-  scale: { entities: 3965, devices: 497, areas: 36, integrations: 74 },
-  stats: [{ title: '亮灯数', value: '49', ok: true }],
+  scale: { entities: 42, devices: 7, areas: 3, integrations: 5 },
+  stats: [{ title: '亮灯数', value: '3', ok: true }],
   hints: [],
 }
 

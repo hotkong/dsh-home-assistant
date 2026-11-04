@@ -357,7 +357,7 @@ window.__ModuleLoader__.load({
             style: S.input,
             value: draft.baseUrl,
             onChange: (e) => patch('baseUrl', e.target.value),
-            placeholder: 'http://192.168.0.11:8123',
+            placeholder: 'http://homeassistant.local:8123',
             spellCheck: false,
           }),
         ),

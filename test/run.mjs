@@ -11,7 +11,7 @@
 
 import { apply, Config } from '../lib/index.js'
 
-const baseUrl = process.argv[2] || process.env.HA_BASE_URL || 'http://192.168.0.11:8123'
+const baseUrl = process.argv[2] || process.env.HA_BASE_URL || 'http://homeassistant.local:8123'
 
 const config = new Config({
   baseUrl,
