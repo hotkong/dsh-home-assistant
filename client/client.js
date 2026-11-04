@@ -521,7 +521,7 @@ window.__ModuleLoader__.load({
           h('span', { style: S.title }, data?.label || 'Home Assistant'),
           h('span', { style: S.muted }, data?.url || '未配置地址'),
           data?.auth_source && data.auth_source !== 'none'
-            ? h('span', { style: S.badge }, `令牌：${data.auth_source}`)
+            ? h('span', { style: S.badge }, '令牌已配置')
             : h('span', { style: { ...S.badge, ...S.hint } }, '未找到令牌'),
           h('span', { style: { flex: 1 } }),
           data?.url ? h('a', { style: S.button, href: data.url, target: '_blank', rel: 'noreferrer' }, '打开 HA') : null,
