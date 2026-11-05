@@ -29,7 +29,7 @@ if (injectMatch === null) {
 const injected = new Set([...injectMatch[1].matchAll(/['"]([^'"]+)['"]/g)].map((match) => match[1]))
 const accessed = new Set([...source.matchAll(/\bctx\.([A-Za-z_$][\w$]*)/g)].map((match) => match[1]))
 for (const name of accessed) {
-  if (name === 'get') continue
+  if (name === 'get' || name === 'inject' || name === 'effect') continue
   if (!injected.has(name)) {
     console.error(`FAIL: ctx.${name} is read but "${name}" is not declared in inject [${[...injected].join(', ')}]`)
     process.exit(1)
@@ -107,6 +107,13 @@ const credentials = {
 }
 
 const registered = []
+const sidebar = { definition: null, body: null, title: null }
+const tabs = {
+  register(definition) {
+    sidebar.definition = definition
+    return () => {}
+  },
+}
 const ctx = {
   remote: { credentials },
   get(name) {
@@ -114,27 +121,53 @@ const ctx = {
     if (name === 'remote.credentials') return credentials
     return undefined
   },
+  inject(names, callback) {
+    if (Array.isArray(names) && names.includes('sidebarRightTabs')) {
+      return callback({
+        get(name) {
+          return name === 'sidebarRightTabs' ? tabs : undefined
+        },
+      })
+    }
+    return undefined
+  },
+  effect(fn) {
+    return fn()
+  },
   configForms: { get: (id) => (id === 'home-assistant' ? form : undefined) },
   slots: {
     inject(name, cb) {
-      if (name !== 'settings.section') throw new Error(`unexpected slot ${name}`)
+      if (!['settings.section', 'sidebar.right.pane.tab', 'sidebar.right.pane.tab.title'].includes(name)) {
+        throw new Error(`unexpected slot ${name}`)
+      }
       return cb()
     },
     register(entry, component) {
       registered.push({ entry, component })
+      if (entry.name === 'sidebar.right.pane.tab') sidebar.body = component
+      if (entry.name === 'sidebar.right.pane.tab.title') sidebar.title = component
       return () => {}
     },
   },
 }
 
 plugin.apply(ctx)
-if (registered.length !== 1) {
-  console.error(`FAIL: expected one settings.section registration, got ${registered.length}`)
+const settings = registered.find((row) => row.entry.name === 'settings.section')
+if (!settings || registered.length !== 3) {
+  console.error(`FAIL: expected settings.section + two sidebar registrations, got ${registered.map((row) => row.entry.name)}`)
   process.exit(1)
 }
-const { entry, component } = registered[0]
+const { entry, component } = settings
 if (entry.id !== 'home-assistant' || typeof entry.label !== 'function' || entry.label() !== 'Home Assistant') {
   console.error('FAIL: unexpected registration', entry)
+  process.exit(1)
+}
+if (!sidebar.definition || sidebar.definition.id !== 'dsh-home-assistant' || sidebar.definition.kind !== 'dsh-home-assistant') {
+  console.error('FAIL: right-sidebar tab type was not registered', sidebar.definition)
+  process.exit(1)
+}
+if (!sidebar.body || !sidebar.title) {
+  console.error('FAIL: right-sidebar body/title slots were not registered')
   process.exit(1)
 }
 
@@ -186,6 +219,22 @@ if (!out.value.includes('/data/dsh/home/homeassistant')) {
 if (!out.placeholder.includes('http://homeassistant.local:8123')) {
   console.error('FAIL: baseUrl placeholder missing')
   process.exit(1)
+}
+
+const sidebarOut = { text: [], value: [], placeholder: [], href: [] }
+try {
+  render(sidebar.body({}), sidebarOut)
+  render(sidebar.title({}), sidebarOut)
+} catch (error) {
+  console.error('FAIL: right-sidebar panel failed to render:', error)
+  process.exit(1)
+}
+const sidebarText = sidebarOut.text.join(' ')
+for (const expected of ['Home Assistant', '刷新', '配置：设置 → Home Assistant']) {
+  if (!sidebarText.includes(expected)) {
+    console.error(`FAIL: sidebar panel is missing ${JSON.stringify(expected)}:\n${sidebarText}`)
+    process.exit(1)
+  }
 }
 
 // A host without the credentials service must not fail the whole page: apply

@@ -33,11 +33,11 @@ For local development, `link:` the repository into the profile's `dependencies` 
 
 Three entry points:
 
-1. **Configure** — open **Settings → Home Assistant**. The status card sits on top, and the form below edits the instance URL, display name, notes, the **access token** (saved into the credential store), up to six stats, prompt injection, the workspace allowlist, and scale counting. **Save** / **Save token** apply immediately; no restart.
-2. **Watch** — the same card shows the connection, token source, Core / Supervisor / OS versions, core state, scale, disk, stats and update time. It refreshes every 15 s; **Refresh status** forces a probe and **Open HA** jumps to the instance.
+1. **Quick status (right sidebar)** — add **Home Assistant** from the right sidebar's **+ / guide**. The panel shows the status dot, Core/Supervisor versions, core state, entity scale, up to three stats and the update time. It refreshes every 30 s (paused while hidden); **Refresh** forces a probe and **Open** jumps to the instance. Configuration and the full card stay in Settings.
+2. **Configure / full status (Settings)** — open **Settings → Home Assistant**. The full status card sits on top, and the form below edits the instance URL, display name, notes, the **access token** (saved into the credential store), up to six stats, prompt injection, the workspace allowlist, and scale counting. **Save** / **Save token** apply immediately; no restart.
 3. **Ask the agent** — "how is Home Assistant doing?" triggers `ha_status`; and since the environment block rides on every prompt, questions like "how many lights are on?" just work.
 
-> The page registers on `settings.section`, so it appears in the host's Settings navigation; it does not depend on `plugins.detail.section`. On a host without the `configForms` service the form degrades to a read-only notice while prompt injection and `ha_status` keep working.
+> The settings page registers on `settings.section`; the sidebar panel registers on the official `sidebarRightTabs` + `sidebar.right.pane.tab` (the same mechanism as `dsh-github-workbench`). A host without `sidebarRightTabs` silently skips the panel; the settings page and `ha_status` keep working. Without `configForms` the form degrades to a read-only notice.
 
 ## Access token
 

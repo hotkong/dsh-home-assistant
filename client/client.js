@@ -600,6 +600,199 @@ window.__ModuleLoader__.load({
       )
     }
 
+    const SIDEBAR_TAB_ID = 'dsh-home-assistant'
+
+    const SB = {
+      panel: { display: 'grid', gap: 10, padding: '10px 12px 16px', fontSize: 12, lineHeight: 1.5 },
+      head: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+      name: { fontWeight: 600, fontSize: 13 },
+      dot: (tone) => ({
+        width: 8,
+        height: 8,
+        borderRadius: 999,
+        flex: '0 0 auto',
+        background: tone === 'ok' ? '#22c55e' : tone === 'warn' ? '#f59e0b' : '#ef4444',
+      }),
+      muted: { opacity: 0.65 },
+      grid: { display: 'grid', gap: 4 },
+      row: { display: 'flex', justifyContent: 'space-between', gap: 10 },
+      button: {
+        padding: '3px 9px',
+        borderRadius: 6,
+        border: '1px solid rgba(127,127,127,.35)',
+        background: 'transparent',
+        color: 'inherit',
+        cursor: 'pointer',
+        fontSize: 11,
+      },
+      link: { fontSize: 11, opacity: 0.7, color: 'inherit' },
+      footnote: { fontSize: 10, opacity: 0.5 },
+      hint: { color: '#f59e0b', fontSize: 11 },
+      error: { color: '#ef4444', fontSize: 11 },
+    }
+
+    function HaIcon({ size = 16 }) {
+      return h(
+        'svg',
+        { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': 'true' },
+        h('path', {
+          d: 'M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3V10.5Z',
+          stroke: 'currentColor',
+          strokeWidth: 1.8,
+          strokeLinejoin: 'round',
+        }),
+      )
+    }
+
+    /** Compact status source; 30 s matches the server cache and pauses when the tab is hidden. */
+    function useSidebarStatus() {
+      const [state, setState] = React.useState({ phase: 'loading', data: null, error: '' })
+      const load = React.useCallback(async (force) => {
+        try {
+          const response = await fetch(force ? `${ROUTE}?refresh=1` : ROUTE, { cache: 'no-store' })
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          setState({ phase: 'ready', data: await response.json(), error: '' })
+        } catch (error) {
+          setState({ phase: 'error', data: null, error: String(error?.message ?? error) })
+        }
+      }, [])
+      React.useEffect(() => {
+        let alive = true
+        const tick = () => {
+          if (!alive) return
+          if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+          load(false)
+        }
+        tick()
+        const timer = setInterval(tick, 30000)
+        const onVisibility = () => {
+          if (alive && document.visibilityState === 'visible') load(false)
+        }
+        if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisibility)
+        return () => {
+          alive = false
+          clearInterval(timer)
+          if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisibility)
+        }
+      }, [load])
+      return [state, load]
+    }
+
+    function SidebarTitle() {
+      return h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } }, h(HaIcon, { size: 14 }), 'Home Assistant')
+    }
+
+    function SidebarPanel() {
+      const [state, reload] = useSidebarStatus()
+      const data = state.data
+      const tone = state.phase !== 'ready' ? 'err' : data?.ok ? 'ok' : 'warn'
+      const versions = [
+        data?.version?.core && `Core ${data.version.core}`,
+        data?.version?.supervisor && `Supervisor ${data.version.supervisor}`,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+      const stats = Array.isArray(data?.stats) ? data.stats.slice(0, 3) : []
+      const scale = data?.scale?.entities
+
+      return h(
+        'div',
+        { style: SB.panel },
+        h(
+          'div',
+          { style: SB.head },
+          h('span', { style: SB.dot(tone) }),
+          h('span', { style: SB.name }, data?.label || 'Home Assistant'),
+          data?.url ? h('a', { style: SB.link, href: data.url, target: '_blank', rel: 'noreferrer' }, '打开') : null,
+          h('span', { style: { flex: 1 } }),
+          h('button', { type: 'button', style: SB.button, onClick: () => reload(true) }, '刷新'),
+        ),
+
+        state.phase === 'error' ? h('div', { style: SB.error }, `读取失败：${state.error}`) : null,
+        data?.pending ? h('div', { style: SB.muted }, '正在首次探测…') : null,
+
+        data && !data.pending && !data.ok
+          ? h(
+              'div',
+              { style: SB.grid },
+              data.configured === false ? h('div', { style: SB.hint }, '还没有配置实例地址。') : null,
+              (data.hints || []).slice(0, 2).map((hint, index) => h('div', { key: index, style: SB.hint }, `· ${hint}`)),
+            )
+          : null,
+
+        data?.ok
+          ? h(
+              'div',
+              { style: SB.grid },
+              versions ? h('div', { style: SB.muted }, versions) : null,
+              h('div', null, `${data.core_state || '未知'}${data.recovery_mode ? ' · recovery_mode' : ''}${data.watchdog === false ? ' · watchdog 关闭' : ''}`),
+              scale ? h('div', { style: SB.muted }, `${scale} 实体${data.scale?.devices ? ` · ${data.scale.devices} 设备` : ''}`) : null,
+              stats.length
+                ? h(
+                    'div',
+                    { style: { ...SB.grid, marginTop: 2 } },
+                    stats.map((stat, index) =>
+                      h('div', { key: index, style: SB.row }, h('span', { style: SB.muted }, stat.title), h('span', null, stat.value ?? '—')),
+                    ),
+                  )
+                : null,
+            )
+          : null,
+
+        h('div', { style: SB.muted }, data?.updated_at ? `更新：${data.updated_at}` : ''),
+        h('div', { style: SB.footnote }, '配置：设置 → Home Assistant'),
+      )
+    }
+
+    function registerSidebarTab(ctx) {
+      if (typeof ctx.inject !== 'function') return
+      ctx.inject(['sidebarRightTabs'], (scoped) => {
+        try {
+          const tabs = typeof scoped.get === 'function' ? scoped.get('sidebarRightTabs') : undefined
+          if (!tabs || typeof tabs.register !== 'function') return
+          const slots = ctx.slots
+          if (!slots || typeof slots.inject !== 'function' || typeof slots.register !== 'function') return
+
+          ctx.effect(() => {
+            const disposeType = tabs.register({
+              id: SIDEBAR_TAB_ID,
+              kind: SIDEBAR_TAB_ID,
+              priority: 'extension',
+              title: () => 'Home Assistant',
+              guide: [
+                {
+                  id: 'status',
+                  order: 56,
+                  title: () => 'Home Assistant',
+                  description: () => 'HA 状态速览',
+                  icon: HaIcon,
+                },
+              ],
+            })
+            const disposeBody = slots.inject('sidebar.right.pane.tab', () =>
+              slots.register(
+                { name: 'sidebar.right.pane.tab', key: SIDEBAR_TAB_ID, inject: () => ({}) },
+                SidebarPanel,
+              ),
+            )
+            const disposeTitle = slots.inject('sidebar.right.pane.tab.title', () =>
+              slots.register(
+                { name: 'sidebar.right.pane.tab.title', key: SIDEBAR_TAB_ID, inject: () => ({}) },
+                SidebarTitle,
+              ),
+            )
+            return () => {
+              disposeBody()
+              disposeTitle()
+              disposeType()
+            }
+          }, 'home-assistant: right sidebar status tab')
+        } catch (error) {
+          console.warn('[dsh-home-assistant] 右侧栏状态卡未注册（设置页不受影响）：', error)
+        }
+      })
+    }
+
     function Page({ form }) {
       const [state, reload] = useStatus()
       const snapshot = useSnapshot(form)
@@ -644,6 +837,11 @@ window.__ModuleLoader__.load({
           )
         } catch (error) {
           console.warn('[dsh-home-assistant] 设置页未注册（插件其余部分不受影响）：', error)
+        }
+        try {
+          registerSidebarTab(ctx)
+        } catch (error) {
+          console.warn('[dsh-home-assistant] 右侧栏状态卡初始化失败（设置页不受影响）：', error)
         }
       },
     }
