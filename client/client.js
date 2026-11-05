@@ -132,7 +132,6 @@ window.__ModuleLoader__.load({
         notifyOnDown: value?.notify?.onDown !== false,
         notifyOnRecover: value?.notify?.onRecover !== false,
         notifyFailureThreshold: Number(value?.notify?.failureThreshold ?? 2),
-        notifyCooldownSec: Number(value?.notify?.cooldownSec ?? 300),
       }
     }
 
@@ -324,11 +323,6 @@ window.__ModuleLoader__.load({
               op: 'set',
               path: ['notify', 'failureThreshold'],
               value: Math.max(1, Number(draft.notifyFailureThreshold) || 2),
-            },
-            {
-              op: 'set',
-              path: ['notify', 'cooldownSec'],
-              value: Math.max(0, Number(draft.notifyCooldownSec) || 0),
             },
           ]
           const ok = await form.mutate(ops, snapshot.revision)
@@ -567,18 +561,6 @@ window.__ModuleLoader__.load({
               max: 10,
               value: draft.notifyFailureThreshold,
               onChange: (e) => patch('notifyFailureThreshold', e.target.value),
-            }),
-          ),
-          h(
-            Field,
-            { caption: 'DOWN 通知冷却（秒，默认 300）' },
-            h('input', {
-              style: { ...S.input, width: 120 },
-              type: 'number',
-              min: 0,
-              max: 86400,
-              value: draft.notifyCooldownSec,
-              onChange: (e) => patch('notifyCooldownSec', e.target.value),
             }),
           ),
           h(
@@ -1023,7 +1005,6 @@ window.__ModuleLoader__.load({
       let confirmed = null
       let downCount = 0
       let upCount = 0
-      let lastDownNotification = 0
       let timer = null
 
       const tick = async () => {
@@ -1065,17 +1046,11 @@ window.__ModuleLoader__.load({
 
         if (!healthy && downCount >= threshold && confirmed !== 'down') {
           confirmed = 'down'
-          const now = Date.now()
-          const cooldown = Math.max(0, Number(cfg.cooldownSec) || 0) * 1000
           const canNotify =
             cfg.onDown !== false &&
             notificationPermission() === 'granted' &&
-            (lastDownNotification === 0 || now - lastDownNotification >= cooldown) &&
             shouldSendNotification('down')
-          if (canNotify) {
-            lastDownNotification = now
-            sendStatusNotification('down', data)
-          }
+          if (canNotify) sendStatusNotification('down', data)
         }
 
         if (healthy && upCount >= threshold && confirmed !== 'up') {

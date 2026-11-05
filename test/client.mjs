@@ -292,7 +292,6 @@ const notifyValue = {
     onDown: true,
     onRecover: true,
     failureThreshold: 1,
-    cooldownSec: 0,
   },
 }
 const notifyForm = {

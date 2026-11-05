@@ -46,7 +46,7 @@ The settings page has a **Browser notifications** section, off by default:
 
 - Notifies only on **HA unavailable / recovered**; it does not watch device events.
 - The first load records a baseline and never notifies on open.
-- `failureThreshold` consecutive failures (default 2) confirm DOWN; DOWN notifications have a cooldown (default 300 s).
+- `failureThreshold` consecutive failures (default 2) confirm DOWN.
 - Permission is requested only by clicking **Enable browser notifications**; a test notification button is included.
 - Notifications require the DSH page to stay open.
 

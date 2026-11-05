@@ -47,7 +47,7 @@ dsh plugin --profile web add dsh-home-assistant
 
 - 只通知 **HA 不可用 / 恢复**，不监听设备事件；
 - 首次加载只记基线，不会一打开就弹；
-- 连续失败 `failureThreshold` 次（默认 2）才判定 DOWN，DOWN 通知有冷却（默认 300 秒）；
+- 连续失败 `failureThreshold` 次（默认 2）才判定 DOWN；
 - 权限必须在设置页点击「启用浏览器通知」申请，可发测试通知；
 - 通知需要 DSH 页面保持打开。
 
