@@ -41,6 +41,16 @@ dsh plugin --profile web add dsh-home-assistant
 
 > 设置页注册在 `settings.section`；左侧主面板注册在 `sidebar.panellist` + `main`（与 `dsh-github-flow` 同一套机制）；右侧栏注册在官方 `sidebarRightTabs` + `sidebar.right.pane.tab`（与 `dsh-github-workbench` 同一套机制）。宿主缺少对应服务时该入口静默跳过，其余入口与 `ha_status` 不受影响；没有 `configForms` 时，表单退化为只读提示。
 
+### 浏览器通知
+
+设置页新增「浏览器通知」一节，默认关闭：
+
+- 只通知 **HA 不可用 / 恢复**，不监听设备事件；
+- 首次加载只记基线，不会一打开就弹；
+- 连续失败 `failureThreshold` 次（默认 2）才判定 DOWN，DOWN 通知有冷却（默认 300 秒）；
+- 权限必须在设置页点击「启用浏览器通知」申请，可发测试通知；
+- 只在 DSH 页面打开时有效；后台标签页可能被浏览器节流，通知会延迟。**不是 24/7 监控**；需要全天候告警请在 HA 侧配置 Companion / Telegram 等。
+
 ## 访问令牌
 
 **UI 推荐**：设置 → Home Assistant →「访问令牌」粘贴长期令牌 →「保存令牌」。它通过宿主凭据服务写入 `$DSH_HOME/.credentials.yaml` 的 `HA_TOKEN`，**不会**进 profile 配置、日志或市场备份；旁边的「清除」可移除。页面会显示当前解析结果（如 `credential:HA_TOKEN` 或 `未找到令牌`）。

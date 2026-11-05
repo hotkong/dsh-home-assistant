@@ -40,6 +40,16 @@ Four entry points:
 
 > The settings page registers on `settings.section`; the left main panel registers on `sidebar.panellist` + `main` (the same mechanism as `dsh-github-flow`); the right sidebar registers on the official `sidebarRightTabs` + `sidebar.right.pane.tab` (the same mechanism as `dsh-github-workbench`). A host without a service silently skips that entry; the other entries and `ha_status` keep working. Without `configForms` the form degrades to a read-only notice.
 
+### Browser notifications
+
+The settings page has a **Browser notifications** section, off by default:
+
+- Notifies only on **HA unavailable / recovered**; it does not watch device events.
+- The first load records a baseline and never notifies on open.
+- `failureThreshold` consecutive failures (default 2) confirm DOWN; DOWN notifications have a cooldown (default 300 s).
+- Permission is requested only by clicking **Enable browser notifications**; a test notification button is included.
+- It works only while the DSH page is open; background tabs may be throttled and notifications delayed. **Not 24/7 monitoring**; use HA Companion / Telegram for that.
+
 ## Access token
 
 **UI (recommended)**: Settings → Home Assistant → paste the long-lived token under **Access token** → **Save token**. It goes through the host credential service into `HA_TOKEN` in `$DSH_HOME/.credentials.yaml` — never into the profile config, logs, or a market backup. **Clear** removes it. The page shows the current resolution (`credential:HA_TOKEN` or `no token found`).

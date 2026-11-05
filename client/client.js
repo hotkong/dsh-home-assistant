@@ -128,6 +128,12 @@ window.__ModuleLoader__.load({
         injectEnabled: value?.inject?.enabled !== false,
         workspaces: Array.isArray(value?.inject?.workspaces) ? value.inject.workspaces.join('\n') : '',
         showScale: value?.status?.showScale !== false,
+        notifyEnabled: value?.notify?.enabled === true,
+        notifyOnDown: value?.notify?.onDown !== false,
+        notifyOnRecover: value?.notify?.onRecover !== false,
+        notifyFailureThreshold: Number(value?.notify?.failureThreshold ?? 2),
+        notifyCooldownSec: Number(value?.notify?.cooldownSec ?? 300),
+        notifyWhenFocused: value?.notify?.notifyWhenFocused === true,
       }
     }
 
@@ -312,6 +318,20 @@ window.__ModuleLoader__.load({
                 .filter(Boolean),
             },
             { op: 'set', path: ['status', 'showScale'], value: draft.showScale },
+            { op: 'set', path: ['notify', 'enabled'], value: draft.notifyEnabled === true },
+            { op: 'set', path: ['notify', 'onDown'], value: draft.notifyOnDown !== false },
+            { op: 'set', path: ['notify', 'onRecover'], value: draft.notifyOnRecover !== false },
+            {
+              op: 'set',
+              path: ['notify', 'failureThreshold'],
+              value: Math.max(1, Number(draft.notifyFailureThreshold) || 2),
+            },
+            {
+              op: 'set',
+              path: ['notify', 'cooldownSec'],
+              value: Math.max(0, Number(draft.notifyCooldownSec) || 0),
+            },
+            { op: 'set', path: ['notify', 'notifyWhenFocused'], value: draft.notifyWhenFocused === true },
           ]
           const ok = await form.mutate(ops, snapshot.revision)
           if (ok) {
@@ -496,6 +516,93 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { style: S.subsection },
+          h('div', { style: S.sectionTitle }, '浏览器通知'),
+          h(
+            'label',
+            { style: { ...S.row, gap: 8 } },
+            h('input', {
+              type: 'checkbox',
+              checked: draft.notifyEnabled,
+              onChange: (e) => patch('notifyEnabled', e.target.checked),
+            }),
+            h('span', null, 'HA 不可用 / 恢复时发送浏览器通知'),
+          ),
+          h(
+            'div',
+            { style: S.caption },
+            draft.notifyEnabled
+              ? '启用后仍需点击「启用浏览器通知」授权；通知只在 DSH 页面打开时有效。'
+              : '当前关闭；不会自动申请通知权限。',
+          ),
+          h(NotificationControls),
+          h(
+            'div',
+            { style: { ...S.row, gap: 14, marginTop: 2 } },
+            h(
+              'label',
+              { style: { ...S.row, gap: 6 } },
+              h('input', {
+                type: 'checkbox',
+                checked: draft.notifyOnDown,
+                onChange: (e) => patch('notifyOnDown', e.target.checked),
+              }),
+              h('span', null, '不可用时通知'),
+            ),
+            h(
+              'label',
+              { style: { ...S.row, gap: 6 } },
+              h('input', {
+                type: 'checkbox',
+                checked: draft.notifyOnRecover,
+                onChange: (e) => patch('notifyOnRecover', e.target.checked),
+              }),
+              h('span', null, '恢复时通知'),
+            ),
+          ),
+          h(
+            Field,
+            { caption: '连续失败次数（默认 2，过滤网络抖动）' },
+            h('input', {
+              style: { ...S.input, width: 96 },
+              type: 'number',
+              min: 1,
+              max: 10,
+              value: draft.notifyFailureThreshold,
+              onChange: (e) => patch('notifyFailureThreshold', e.target.value),
+            }),
+          ),
+          h(
+            Field,
+            { caption: 'DOWN 通知冷却（秒，默认 300）' },
+            h('input', {
+              style: { ...S.input, width: 120 },
+              type: 'number',
+              min: 0,
+              max: 86400,
+              value: draft.notifyCooldownSec,
+              onChange: (e) => patch('notifyCooldownSec', e.target.value),
+            }),
+          ),
+          h(
+            'label',
+            { style: { ...S.row, gap: 8 } },
+            h('input', {
+              type: 'checkbox',
+              checked: draft.notifyWhenFocused,
+              onChange: (e) => patch('notifyWhenFocused', e.target.checked),
+            }),
+            h('span', null, '页面聚焦时也通知'),
+          ),
+          h(
+            'div',
+            { style: S.caption },
+            '页面关闭后收不到；后台标签页可能被浏览器节流，通知会延迟。需要 24/7 告警请在 HA 侧配置 Companion / Telegram 等。',
+          ),
+        ),
+        h('div', { style: S.divider }),
+        h(
+          'div',
+          { style: S.subsection },
           h('div', { style: S.sectionTitle }, '状态探测'),
           h(
             'label',
@@ -509,6 +616,79 @@ window.__ModuleLoader__.load({
           ),
         ),
         message.text ? h('div', { style: message.tone === 'error' ? S.error : message.tone === 'ok' ? S.ok : S.muted }, message.text) : null,
+      )
+    }
+
+    function NotificationControls() {
+      const supported = typeof window !== 'undefined' && typeof window.Notification === 'function'
+      const [permission, setPermission] = React.useState(() => (supported ? window.Notification.permission : 'unsupported'))
+      const [message, setMessage] = React.useState('')
+
+      async function enable() {
+        if (!supported) {
+          setMessage('当前浏览器不支持系统通知。')
+          return
+        }
+        try {
+          const result = await window.Notification.requestPermission()
+          setPermission(result)
+          setMessage(
+            result === 'granted'
+              ? '已允许；保存配置后，状态变化会发通知。'
+              : result === 'denied'
+                ? '已被浏览器阻止；请在站点设置里允许通知。'
+                : '尚未允许。',
+          )
+        } catch (error) {
+          setMessage(`申请权限失败：${error?.message ?? error}`)
+        }
+      }
+
+      function test() {
+        if (!supported || permission !== 'granted') {
+          setMessage('请先允许通知权限。')
+          return
+        }
+        try {
+          new window.Notification('Home Assistant 测试通知', {
+            body: '如果你看到这条系统通知，说明浏览器通知已可用。',
+            tag: 'dsh-home-assistant-test',
+          })
+          setMessage('已发送测试通知。')
+        } catch (error) {
+          setMessage(`发送失败：${error?.message ?? error}`)
+        }
+      }
+
+      const label =
+        permission === 'granted'
+          ? '已允许'
+          : permission === 'denied'
+            ? '已阻止'
+            : permission === 'unsupported'
+              ? '不支持'
+              : '未申请'
+
+      return h(
+        'div',
+        { style: S.tokenBox },
+        h(
+          'div',
+          { style: S.row },
+          h(
+            'button',
+            { type: 'button', style: S.button, disabled: !supported, onClick: enable },
+            permission === 'granted' ? '重新申请权限' : '启用浏览器通知',
+          ),
+          h(
+            'button',
+            { type: 'button', style: S.button, disabled: permission !== 'granted', onClick: test },
+            '发送测试通知',
+          ),
+          h('span', { style: S.caption }, `权限：${label}`),
+        ),
+        message ? h('div', { style: S.caption }, message) : null,
+        h('div', { style: S.caption }, '通知权限必须由用户点击申请；不会在页面加载时自动弹窗。'),
       )
     }
 
@@ -602,6 +782,7 @@ window.__ModuleLoader__.load({
 
     const SIDEBAR_TAB_ID = 'dsh-home-assistant'
     const MAIN_PANEL_ID = 'home-assistant'
+    let statusNotifierCleanup = null
 
     const SB = {
       panel: { display: 'grid', gap: 10, padding: '10px 12px 16px', fontSize: 12, lineHeight: 1.5 },
@@ -794,6 +975,186 @@ window.__ModuleLoader__.load({
       })
     }
 
+    const NOTIFY_TAG = 'dsh-home-assistant-status'
+    const NOTIFY_DEDUPE_KEY = 'dsh-home-assistant:last-notify'
+
+    function notificationSupported() {
+      return typeof window !== 'undefined' && typeof window.Notification === 'function'
+    }
+
+    function notificationPermission() {
+      if (!notificationSupported()) return 'unsupported'
+      return window.Notification.permission || 'default'
+    }
+
+    function shouldSendNotification(kind) {
+      try {
+        const now = Date.now()
+        const raw = window.localStorage?.getItem(NOTIFY_DEDUPE_KEY)
+        const previous = raw ? JSON.parse(raw) : null
+        if (previous && previous.kind === kind && now - Number(previous.at) < 15000) return false
+        window.localStorage?.setItem(NOTIFY_DEDUPE_KEY, JSON.stringify({ kind, at: now }))
+      } catch {
+        /* localStorage may be unavailable; duplicates are acceptable */
+      }
+      return true
+    }
+
+    function sendStatusNotification(kind, data) {
+      if (!notificationSupported() || window.Notification.permission !== 'granted') return
+      const title = kind === 'down' ? 'Home Assistant 不可用' : 'Home Assistant 已恢复'
+      const label = data?.label || 'Home Assistant'
+      const state = data?.core_state || (kind === 'down' ? 'UNREACHABLE' : 'RUNNING')
+      const hint = Array.isArray(data?.hints) && data.hints[0] ? ` · ${data.hints[0]}` : ''
+      try {
+        const notification = new window.Notification(title, {
+          body: `${label} · ${state}${hint}`,
+          tag: NOTIFY_TAG,
+        })
+        notification.onclick = () => {
+          try {
+            window.focus()
+          } catch {
+            /* focus is best effort */
+          }
+          try {
+            notification.close()
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch {
+        /* notifications can fail (permissions, insecure context); never break the watcher */
+      }
+    }
+
+    function watchStatus(readNotify) {
+      let alive = true
+      let baseline = true
+      let confirmed = null
+      let downCount = 0
+      let upCount = 0
+      let lastDownNotification = 0
+      let timer = null
+
+      const focused = () =>
+        typeof document !== 'undefined' &&
+        document.visibilityState === 'visible' &&
+        (typeof document.hasFocus === 'function' ? document.hasFocus() : true)
+
+      const tick = async () => {
+        if (!alive) return
+        const cfg = readNotify() || {}
+        if (cfg.enabled !== true) return
+        let data
+        try {
+          const response = await fetch(ROUTE, { cache: 'no-store' })
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          data = await response.json()
+        } catch (error) {
+          data = { ok: false, configured: true, core_state: 'UNREACHABLE', hints: [String(error?.message ?? error)] }
+        }
+        if (!alive) return
+        if (data?.pending) return
+        if (data?.configured === false || data?.auth_source === 'none') return
+
+        const state = String(data?.core_state || '').toUpperCase()
+        const healthy = data?.ok === true && !['NOT_RUNNING', 'STARTING', 'STOPPING', 'UNKNOWN', 'UNREACHABLE'].includes(state)
+
+        if (baseline) {
+          confirmed = healthy ? 'up' : 'down'
+          baseline = false
+          downCount = 0
+          upCount = 0
+          return
+        }
+
+        if (healthy) {
+          upCount += 1
+          downCount = 0
+        } else {
+          downCount += 1
+          upCount = 0
+        }
+
+        const threshold = Math.max(1, Number(cfg.failureThreshold) || 2)
+        const allowedByFocus = cfg.notifyWhenFocused === true || !focused()
+
+        if (!healthy && downCount >= threshold && confirmed !== 'down') {
+          confirmed = 'down'
+          const now = Date.now()
+          const cooldown = Math.max(0, Number(cfg.cooldownSec) || 0) * 1000
+          const canNotify =
+            cfg.onDown !== false &&
+            allowedByFocus &&
+            notificationPermission() === 'granted' &&
+            (lastDownNotification === 0 || now - lastDownNotification >= cooldown) &&
+            shouldSendNotification('down')
+          if (canNotify) {
+            lastDownNotification = now
+            sendStatusNotification('down', data)
+          }
+        }
+
+        if (healthy && upCount >= threshold && confirmed !== 'up') {
+          confirmed = 'up'
+          const canNotify =
+            cfg.onRecover !== false &&
+            allowedByFocus &&
+            notificationPermission() === 'granted' &&
+            shouldSendNotification('up')
+          if (canNotify) sendStatusNotification('up', data)
+        }
+      }
+
+      tick()
+      timer = setInterval(tick, 30000)
+      const onVisibility = () => {
+        if (alive && typeof document !== 'undefined' && document.visibilityState === 'visible') tick()
+      }
+      if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisibility)
+      return () => {
+        alive = false
+        if (timer) clearInterval(timer)
+        if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisibility)
+      }
+    }
+
+    function startStatusNotifier(ctx) {
+      const form = ctx.configForms?.get?.(ENTRY_ID)
+      if (!form || typeof form.getSnapshot !== 'function') return () => {}
+      let stop = null
+      const readNotify = () => {
+        const snapshot = form.getSnapshot()
+        return snapshot?.value?.notify && typeof snapshot.value.notify === 'object' ? snapshot.value.notify : {}
+      }
+      const ensure = () => {
+        const enabled = readNotify().enabled === true
+        if (enabled && !stop) stop = watchStatus(readNotify)
+        if (!enabled && stop) {
+          stop()
+          stop = null
+        }
+      }
+      let unsubscribe = () => {}
+      if (typeof form.subscribe === 'function') {
+        const result = form.subscribe(ensure)
+        if (typeof result === 'function') unsubscribe = result
+      }
+      ensure()
+      return () => {
+        try {
+          unsubscribe()
+        } catch {
+          /* ignore */
+        }
+        if (stop) {
+          stop()
+          stop = null
+        }
+      }
+    }
+
     function HomeAssistantPage() {
       const [state, reload] = useStatus()
       return h(
@@ -889,6 +1250,19 @@ window.__ModuleLoader__.load({
           registerMainPanel(ctx)
         } catch (error) {
           console.warn('[dsh-home-assistant] 左侧主面板初始化失败（设置页/右侧栏不受影响）：', error)
+        }
+        try {
+          if (typeof statusNotifierCleanup === 'function') statusNotifierCleanup()
+          const cleanup = startStatusNotifier(ctx)
+          statusNotifierCleanup = cleanup
+          ctx.effect?.(() => () => {
+            if (statusNotifierCleanup === cleanup) {
+              cleanup()
+              statusNotifierCleanup = null
+            }
+          })
+        } catch (error) {
+          console.warn('[dsh-home-assistant] 浏览器通知初始化失败（状态面板不受影响）：', error)
         }
       },
     }

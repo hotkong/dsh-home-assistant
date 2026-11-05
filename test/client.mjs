@@ -209,7 +209,7 @@ try {
 }
 
 const text = out.text.join(' ')
-for (const expected of ['Home Assistant', '保存配置', '实例地址 baseUrl', '观测项', '显示与系统提示词注入', '显示名 label', '备注 notes', '状态探测', '仅在以下工作区自动注入', '访问令牌', '长期访问令牌保存在 DSH 凭据库', '还没有保存令牌']) {
+for (const expected of ['Home Assistant', '保存配置', '实例地址 baseUrl', '观测项', '显示与系统提示词注入', '显示名 label', '备注 notes', '状态探测', '浏览器通知', '启用浏览器通知', '发送测试通知', '连续失败次数', '仅在以下工作区自动注入', '访问令牌', '长期访问令牌保存在 DSH 凭据库', '还没有保存令牌']) {
   if (!text.includes(expected)) {
     console.error(`FAIL: rendered page is missing ${JSON.stringify(expected)}:\n${text}`)
     process.exit(1)
@@ -283,6 +283,106 @@ if (!registeredWithoutCredentials.some((row) => row.entry.name === 'settings.sec
   process.exit(1)
 }
 
+// The status notifier is the only piece with timers and browser APIs. Exercise
+// its baseline -> down -> recovered transitions with a tiny fake environment.
+const notifyValue = {
+  ...value,
+  notify: {
+    enabled: true,
+    onDown: true,
+    onRecover: true,
+    failureThreshold: 1,
+    cooldownSec: 0,
+    notifyWhenFocused: true,
+  },
+}
+const notifyForm = {
+  getSnapshot: () => ({ status: 'ready', value: notifyValue, revision: 0, writable: true }),
+  subscribe: () => () => {},
+  mutate: async () => true,
+}
+const notifications = []
+const notifyCleanups = []
+class FakeNotification {
+  static permission = 'granted'
+  static requestPermission = async () => 'granted'
+  constructor(title, options) {
+    this.title = title
+    this.options = options
+    notifications.push({ title, options })
+  }
+  close() {}
+}
+const localStore = new Map()
+const notifyListeners = {}
+const previousDocument = globalThis.document
+globalThis.document = {
+  visibilityState: 'hidden',
+  hasFocus: () => false,
+  addEventListener: (name, callback) => {
+    notifyListeners[name] = callback
+  },
+  removeEventListener: () => {},
+}
+window.Notification = FakeNotification
+window.localStorage = {
+  getItem: (key) => localStore.get(key) ?? null,
+  setItem: (key, value) => localStore.set(key, String(value)),
+}
+window.focus = () => {}
+
+const healthFrames = [
+  { ok: true, configured: true, auth_source: 'credential:HA_TOKEN', core_state: 'RUNNING', label: '客厅 HA' },
+  { ok: false, configured: true, auth_source: 'credential:HA_TOKEN', core_state: 'NOT_RUNNING', label: '客厅 HA', hints: ['API 不可达'] },
+  { ok: true, configured: true, auth_source: 'credential:HA_TOKEN', core_state: 'RUNNING', label: '客厅 HA' },
+]
+let frameIndex = 0
+const realFetch = globalThis.fetch
+globalThis.fetch = async () => {
+  const data = healthFrames[Math.min(frameIndex, healthFrames.length - 1)]
+  frameIndex += 1
+  return { ok: true, json: async () => data }
+}
+
+const notifyCtx = {
+  configForms: { get: () => notifyForm },
+  slots: {
+    inject: (_name, callback) => callback(),
+    register: () => () => {},
+  },
+  effect: (fn) => {
+    const cleanup = fn()
+    if (typeof cleanup === 'function') notifyCleanups.push(cleanup)
+    return cleanup
+  },
+}
+try {
+  plugin.apply(notifyCtx)
+  await new Promise((resolve) => setTimeout(resolve, 30))
+  if (notifications.length !== 0) {
+    console.error('FAIL: notifier should baseline without notifying:', notifications)
+    process.exit(1)
+  }
+  document.visibilityState = 'visible'
+  notifyListeners.visibilitychange?.()
+  await new Promise((resolve) => setTimeout(resolve, 30))
+  if (notifications.length !== 1 || notifications[0].title !== 'Home Assistant 不可用') {
+    console.error('FAIL: missing down notification:', notifications)
+    process.exit(1)
+  }
+  notifyListeners.visibilitychange?.()
+  await new Promise((resolve) => setTimeout(resolve, 30))
+  if (notifications.length !== 2 || notifications[1].title !== 'Home Assistant 已恢复') {
+    console.error('FAIL: missing recovery notification:', notifications)
+    process.exit(1)
+  }
+} finally {
+  for (const cleanup of notifyCleanups.reverse()) cleanup()
+  globalThis.fetch = realFetch
+  globalThis.document = previousDocument
+}
+
 console.log('client harness: PASS')
 console.log(`registered settings.section id=${entry.id} order=${entry.order}`)
 console.log(`inputs=${out.value.length} texts=${out.text.length}`)
+console.log(`notifications=${notifications.map((item) => item.title).join(' -> ')}`)
