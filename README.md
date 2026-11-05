@@ -49,7 +49,7 @@ dsh plugin --profile web add dsh-home-assistant
 - 首次加载只记基线，不会一打开就弹；
 - 连续失败 `failureThreshold` 次（默认 2）才判定 DOWN，DOWN 通知有冷却（默认 300 秒）；
 - 权限必须在设置页点击「启用浏览器通知」申请，可发测试通知；
-- 只在 DSH 页面打开时有效；后台标签页可能被浏览器节流，通知会延迟。**不是 24/7 监控**；需要全天候告警请在 HA 侧配置 Companion / Telegram 等。
+- 通知需要 DSH 页面保持打开。
 
 ## 访问令牌
 

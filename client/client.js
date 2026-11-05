@@ -596,7 +596,7 @@ window.__ModuleLoader__.load({
           h(
             'div',
             { style: S.caption },
-            '页面关闭后收不到；后台标签页可能被浏览器节流，通知会延迟。需要 24/7 告警请在 HA 侧配置 Companion / Telegram 等。',
+            '通知需要 DSH 页面保持打开。',
           ),
         ),
         h('div', { style: S.divider }),
