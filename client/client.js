@@ -443,6 +443,22 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { style: S.subsection },
+          h('div', { style: S.sectionTitle }, '状态探测'),
+          h(
+            'label',
+            { style: { ...S.row, gap: 8 } },
+            h('input', {
+              type: 'checkbox',
+              checked: draft.showScale,
+              onChange: (e) => patch('showScale', e.target.checked),
+            }),
+            h('span', null, '统计实体 / 设备 / 区域 / 集成数量'),
+          ),
+        ),
+        h('div', { style: S.divider }),
+        h(
+          'div',
+          { style: S.subsection },
           h('div', { style: S.sectionTitle }, '显示与系统提示词注入'),
           h(
             'label',
@@ -567,22 +583,6 @@ window.__ModuleLoader__.load({
             'div',
             { style: S.caption },
             '通知需要 DSH 页面保持打开。',
-          ),
-        ),
-        h('div', { style: S.divider }),
-        h(
-          'div',
-          { style: S.subsection },
-          h('div', { style: S.sectionTitle }, '状态探测'),
-          h(
-            'label',
-            { style: { ...S.row, gap: 8 } },
-            h('input', {
-              type: 'checkbox',
-              checked: draft.showScale,
-              onChange: (e) => patch('showScale', e.target.checked),
-            }),
-            h('span', null, '统计实体 / 设备 / 区域 / 集成数量'),
           ),
         ),
         message.text ? h('div', { style: message.tone === 'error' ? S.error : message.tone === 'ok' ? S.ok : S.muted }, message.text) : null,

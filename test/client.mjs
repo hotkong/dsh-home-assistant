@@ -209,6 +209,11 @@ try {
 }
 
 const text = out.text.join(' ')
+const sectionOrder = ['观测项', '状态探测', '显示与系统提示词注入', '浏览器通知'].map((label) => text.indexOf(label))
+if (sectionOrder.some((index) => index < 0) || sectionOrder.some((index, position) => position > 0 && index < sectionOrder[position - 1])) {
+  console.error('FAIL: observation/status sections are not adjacent or out of order:', sectionOrder)
+  process.exit(1)
+}
 for (const expected of ['Home Assistant', '保存配置', '实例地址 baseUrl', '观测项', '显示与系统提示词注入', '显示名 label', '备注 notes', '状态探测', '浏览器通知', '启用浏览器通知', '发送测试通知', '连续失败次数', '仅在以下工作区自动注入', '访问令牌', '长期访问令牌保存在 DSH 凭据库', '还没有保存令牌']) {
   if (!text.includes(expected)) {
     console.error(`FAIL: rendered page is missing ${JSON.stringify(expected)}:\n${text}`)
