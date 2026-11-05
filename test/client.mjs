@@ -108,6 +108,7 @@ const credentials = {
 
 const registered = []
 const sidebar = { definition: null, body: null, title: null }
+const mainPanel = { entry: null, page: null }
 const tabs = {
   register(definition) {
     sidebar.definition = definition
@@ -137,7 +138,7 @@ const ctx = {
   configForms: { get: (id) => (id === 'home-assistant' ? form : undefined) },
   slots: {
     inject(name, cb) {
-      if (!['settings.section', 'sidebar.right.pane.tab', 'sidebar.right.pane.tab.title'].includes(name)) {
+      if (!['settings.section', 'sidebar.right.pane.tab', 'sidebar.right.pane.tab.title', 'sidebar.panellist', 'main'].includes(name)) {
         throw new Error(`unexpected slot ${name}`)
       }
       return cb()
@@ -146,6 +147,8 @@ const ctx = {
       registered.push({ entry, component })
       if (entry.name === 'sidebar.right.pane.tab') sidebar.body = component
       if (entry.name === 'sidebar.right.pane.tab.title') sidebar.title = component
+      if (entry.name === 'sidebar.panellist') mainPanel.entry = entry
+      if (entry.name === 'main') mainPanel.page = component
       return () => {}
     },
   },
@@ -153,8 +156,8 @@ const ctx = {
 
 plugin.apply(ctx)
 const settings = registered.find((row) => row.entry.name === 'settings.section')
-if (!settings || registered.length !== 3) {
-  console.error(`FAIL: expected settings.section + two sidebar registrations, got ${registered.map((row) => row.entry.name)}`)
+if (!settings || registered.length !== 5) {
+  console.error(`FAIL: expected settings + right tab + left panel registrations, got ${registered.map((row) => row.entry.name)}`)
   process.exit(1)
 }
 const { entry, component } = settings
@@ -168,6 +171,10 @@ if (!sidebar.definition || sidebar.definition.id !== 'dsh-home-assistant' || sid
 }
 if (!sidebar.body || !sidebar.title) {
   console.error('FAIL: right-sidebar body/title slots were not registered')
+  process.exit(1)
+}
+if (!mainPanel.entry || mainPanel.entry.id !== 'home-assistant' || !mainPanel.page) {
+  console.error('FAIL: left sidebar entry/main panel were not registered', mainPanel)
   process.exit(1)
 }
 
@@ -237,6 +244,21 @@ for (const expected of ['Home Assistant', '刷新', '配置：设置 → Home As
   }
 }
 
+const mainOut = { text: [], value: [], placeholder: [], href: [] }
+try {
+  render(mainPanel.page({}), mainOut)
+} catch (error) {
+  console.error('FAIL: left main panel failed to render:', error)
+  process.exit(1)
+}
+const mainText = mainOut.text.join(' ')
+for (const expected of ['Home Assistant', '只读状态总览', '设置 → Home Assistant']) {
+  if (!mainText.includes(expected)) {
+    console.error(`FAIL: left main panel is missing ${JSON.stringify(expected)}:\n${mainText}`)
+    process.exit(1)
+  }
+}
+
 // A host without the credentials service must not fail the whole page: apply
 // only needs slots/configForms, and the token editor degrades to a notice.
 const registeredWithoutCredentials = []
@@ -256,7 +278,7 @@ try {
   console.error('FAIL: client apply threw without the optional credentials service:', error)
   process.exit(1)
 }
-if (registeredWithoutCredentials.length !== 1) {
+if (!registeredWithoutCredentials.some((row) => row.entry.name === 'settings.section')) {
   console.error('FAIL: settings.section was not registered without credentials')
   process.exit(1)
 }

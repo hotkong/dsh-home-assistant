@@ -31,13 +31,14 @@ For local development, `link:` the repository into the profile's `dependencies` 
 
 ## Using it
 
-Three entry points:
+Four entry points:
 
-1. **Quick status (right sidebar)** — add **Home Assistant** from the right sidebar's **+ / guide**. The panel shows the status dot, Core/Supervisor versions, core state, entity scale, up to three stats and the update time. It refreshes every 30 s (paused while hidden); **Refresh** forces a probe and **Open** jumps to the instance. Configuration and the full card stay in Settings.
-2. **Configure / full status (Settings)** — open **Settings → Home Assistant**. The full status card sits on top, and the form below edits the instance URL, display name, notes, the **access token** (saved into the credential store), up to six stats, prompt injection, the workspace allowlist, and scale counting. **Save** / **Save token** apply immediately; no restart.
-3. **Ask the agent** — "how is Home Assistant doing?" triggers `ha_status`; and since the environment block rides on every prompt, questions like "how many lights are on?" just work.
+1. **Left main panel (full overview)** — **Home Assistant** in the left navigation. It opens a read-only overview: versions, core state, scale, disk, time zone, all stats, update time, refresh/open HA; the configuration entry is noted in the page.
+2. **Right sidebar (compact card)** — add **Home Assistant** from the right sidebar's **+ / guide**. The panel shows the status dot, Core/Supervisor versions, core state, entity scale, up to three stats and the update time. It refreshes every 30 s (paused while hidden); **Refresh** forces a probe and **Open** jumps to the instance.
+3. **Configure (Settings)** — open **Settings → Home Assistant**. The full status card sits on top, and the form below edits the instance URL, display name, notes, the **access token** (saved into the credential store), up to six stats, prompt injection, the workspace allowlist, and scale counting. **Save** / **Save token** apply immediately; no restart.
+4. **Ask the agent** — "how is Home Assistant doing?" triggers `ha_status`; and since the environment block rides on every prompt, questions like "how many lights are on?" just work.
 
-> The settings page registers on `settings.section`; the sidebar panel registers on the official `sidebarRightTabs` + `sidebar.right.pane.tab` (the same mechanism as `dsh-github-workbench`). A host without `sidebarRightTabs` silently skips the panel; the settings page and `ha_status` keep working. Without `configForms` the form degrades to a read-only notice.
+> The settings page registers on `settings.section`; the left main panel registers on `sidebar.panellist` + `main` (the same mechanism as `dsh-github-flow`); the right sidebar registers on the official `sidebarRightTabs` + `sidebar.right.pane.tab` (the same mechanism as `dsh-github-workbench`). A host without a service silently skips that entry; the other entries and `ha_status` keep working. Without `configForms` the form degrades to a read-only notice.
 
 ## Access token
 

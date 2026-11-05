@@ -601,6 +601,7 @@ window.__ModuleLoader__.load({
     }
 
     const SIDEBAR_TAB_ID = 'dsh-home-assistant'
+    const MAIN_PANEL_ID = 'home-assistant'
 
     const SB = {
       panel: { display: 'grid', gap: 10, padding: '10px 12px 16px', fontSize: 12, lineHeight: 1.5 },
@@ -793,6 +794,47 @@ window.__ModuleLoader__.load({
       })
     }
 
+    function HomeAssistantPage() {
+      const [state, reload] = useStatus()
+      return h(
+        'div',
+        { style: { display: 'grid', gap: 16, padding: '20px 24px 32px', maxWidth: 1080, margin: '0 auto' } },
+        h(
+          'div',
+          { style: { display: 'grid', gap: 3 } },
+          h('h2', { style: { margin: 0, fontSize: 20, fontWeight: 600 } }, 'Home Assistant'),
+          h('div', { style: { fontSize: 12, opacity: 0.6 } }, '只读状态总览 · 配置在 设置 → Home Assistant'),
+        ),
+        h(StatusBlock, { state, reload, data: state.data }),
+        h(
+          'div',
+          { style: { fontSize: 12, opacity: 0.55 } },
+          '需要修改地址、令牌、观测项或注入策略时，打开 设置 → Home Assistant。',
+        ),
+      )
+    }
+
+    function registerMainPanel(ctx) {
+      try {
+        const slots = ctx.slots
+        if (!slots || typeof slots.inject !== 'function' || typeof slots.register !== 'function') return
+        slots.inject('sidebar.panellist', () =>
+          slots.register(
+            { name: 'sidebar.panellist', id: MAIN_PANEL_ID, order: 21, label: () => 'Home Assistant' },
+            HaIcon,
+          ),
+        )
+        slots.inject('main', () =>
+          slots.register(
+            { name: 'main', key: MAIN_PANEL_ID },
+            HomeAssistantPage,
+          ),
+        )
+      } catch (error) {
+        console.warn('[dsh-home-assistant] 左侧主面板未注册（设置页/右侧栏不受影响）：', error)
+      }
+    }
+
     function Page({ form }) {
       const [state, reload] = useStatus()
       const snapshot = useSnapshot(form)
@@ -842,6 +884,11 @@ window.__ModuleLoader__.load({
           registerSidebarTab(ctx)
         } catch (error) {
           console.warn('[dsh-home-assistant] 右侧栏状态卡初始化失败（设置页不受影响）：', error)
+        }
+        try {
+          registerMainPanel(ctx)
+        } catch (error) {
+          console.warn('[dsh-home-assistant] 左侧主面板初始化失败（设置页/右侧栏不受影响）：', error)
         }
       },
     }
