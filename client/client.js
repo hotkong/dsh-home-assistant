@@ -650,9 +650,10 @@ window.__ModuleLoader__.load({
           return
         }
         try {
+          const now = new Date()
           new window.Notification('Home Assistant 测试通知', {
-            body: '如果你看到这条系统通知，说明浏览器通知已可用。',
-            tag: 'dsh-home-assistant-test',
+            body: `如果你看到这条系统通知，说明浏览器通知已可用。测试时间 ${now.toLocaleTimeString()}`,
+            tag: `dsh-home-assistant-test-${now.getTime()}`,
           })
           setMessage('已发送测试通知。')
         } catch (error) {
