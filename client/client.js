@@ -533,13 +533,13 @@ window.__ModuleLoader__.load({
               checked: draft.notifyEnabled,
               onChange: (e) => patch('notifyEnabled', e.target.checked),
             }),
-            h('span', null, 'HA 不可用 / 恢复时发送浏览器通知'),
+            h('span', null, '启用通知'),
           ),
           h(
             'div',
             { style: S.caption },
             draft.notifyEnabled
-              ? '启用后仍需点击「启用浏览器通知」授权；通知只在 DSH 页面打开时有效。'
+              ? '启用后仍需在上方授权浏览器通知。'
               : '当前关闭；不会自动申请通知权限。',
           ),
           h(NotificationControls),
