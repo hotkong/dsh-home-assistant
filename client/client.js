@@ -133,7 +133,6 @@ window.__ModuleLoader__.load({
         notifyOnRecover: value?.notify?.onRecover !== false,
         notifyFailureThreshold: Number(value?.notify?.failureThreshold ?? 2),
         notifyCooldownSec: Number(value?.notify?.cooldownSec ?? 300),
-        notifyWhenFocused: value?.notify?.notifyWhenFocused === true,
       }
     }
 
@@ -331,7 +330,6 @@ window.__ModuleLoader__.load({
               path: ['notify', 'cooldownSec'],
               value: Math.max(0, Number(draft.notifyCooldownSec) || 0),
             },
-            { op: 'set', path: ['notify', 'notifyWhenFocused'], value: draft.notifyWhenFocused === true },
           ]
           const ok = await form.mutate(ops, snapshot.revision)
           if (ok) {
@@ -582,16 +580,6 @@ window.__ModuleLoader__.load({
               value: draft.notifyCooldownSec,
               onChange: (e) => patch('notifyCooldownSec', e.target.value),
             }),
-          ),
-          h(
-            'label',
-            { style: { ...S.row, gap: 8 } },
-            h('input', {
-              type: 'checkbox',
-              checked: draft.notifyWhenFocused,
-              onChange: (e) => patch('notifyWhenFocused', e.target.checked),
-            }),
-            h('span', null, '页面聚焦时也通知'),
           ),
           h(
             'div',
@@ -1038,11 +1026,6 @@ window.__ModuleLoader__.load({
       let lastDownNotification = 0
       let timer = null
 
-      const focused = () =>
-        typeof document !== 'undefined' &&
-        document.visibilityState === 'visible' &&
-        (typeof document.hasFocus === 'function' ? document.hasFocus() : true)
-
       const tick = async () => {
         if (!alive) return
         const cfg = readNotify() || {}
@@ -1079,7 +1062,6 @@ window.__ModuleLoader__.load({
         }
 
         const threshold = Math.max(1, Number(cfg.failureThreshold) || 2)
-        const allowedByFocus = cfg.notifyWhenFocused === true || !focused()
 
         if (!healthy && downCount >= threshold && confirmed !== 'down') {
           confirmed = 'down'
@@ -1087,7 +1069,6 @@ window.__ModuleLoader__.load({
           const cooldown = Math.max(0, Number(cfg.cooldownSec) || 0) * 1000
           const canNotify =
             cfg.onDown !== false &&
-            allowedByFocus &&
             notificationPermission() === 'granted' &&
             (lastDownNotification === 0 || now - lastDownNotification >= cooldown) &&
             shouldSendNotification('down')
@@ -1101,7 +1082,6 @@ window.__ModuleLoader__.load({
           confirmed = 'up'
           const canNotify =
             cfg.onRecover !== false &&
-            allowedByFocus &&
             notificationPermission() === 'granted' &&
             shouldSendNotification('up')
           if (canNotify) sendStatusNotification('up', data)

@@ -293,7 +293,6 @@ const notifyValue = {
     onRecover: true,
     failureThreshold: 1,
     cooldownSec: 0,
-    notifyWhenFocused: true,
   },
 }
 const notifyForm = {
