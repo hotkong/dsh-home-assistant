@@ -1,4 +1,4 @@
-# dsh-home-assistant
+# dsh-home-assistant-panel
 
 English | [中文](./README.md)
 
@@ -22,7 +22,7 @@ The block rides along on **every request** (~150–300 tokens), so the first que
 ## Install
 
 ```sh
-dsh plugin --profile web add dsh-home-assistant
+dsh plugin --profile web add dsh-home-assistant-panel
 ```
 
 Reload the page afterwards (or restart `dsh web`).

@@ -1,4 +1,4 @@
-# dsh-home-assistant — bundle entry, mounted by the DSH profile.
+# dsh-home-assistant-panel — bundle entry, mounted by the DSH profile.
 - insert:
     - id: home-assistant
-      name: dsh-home-assistant
+      name: dsh-home-assistant-panel

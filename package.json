@@ -1,7 +1,7 @@
 {
-  "name": "dsh-home-assistant",
+  "name": "dsh-home-assistant-panel",
   "version": "0.1.0",
-  "description": "Home Assistant environment panel for DeepSeek Harness: configure the instance once, then every session already knows where it is, what version it runs and how it is doing. · 把 Home Assistant 的环境配一次，之后每个会话开局就知道它在哪、什么版本、什么状态。",
+  "description": "Home Assistant panel for DeepSeek Harness: a read-only status overview, environment prompt injection, ha_status and browser notifications. · 把 Home Assistant 的状态面板、环境注入和通知配一次，之后每个会话开局就知道它在哪、什么版本、什么状态。",
   "type": "module",
   "main": "lib/index.js",
   "icon": "assets/icon.svg",
@@ -12,11 +12,13 @@
     "deepseek-harness",
     "homeassistant",
     "home-assistant",
+    "panel",
+    "status-panel",
     "smart-home"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hotkong/dsh-home-assistant.git"
+    "url": "git+https://github.com/hotkong/dsh-home-assistant-panel.git"
   },
   "files": [
     "lib",
@@ -62,5 +64,9 @@
   },
   "scripts": {
     "test": "node test/run.mjs"
+  },
+  "homepage": "https://github.com/hotkong/dsh-home-assistant-panel#readme",
+  "bugs": {
+    "url": "https://github.com/hotkong/dsh-home-assistant-panel/issues"
   }
 }

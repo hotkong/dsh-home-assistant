@@ -1,10 +1,10 @@
-// dsh-home-assistant — Settings section: live status + configuration editor.
+// dsh-home-assistant-panel — settings, sidebar, main panel and notifications.
 // One `settings.section` registration: the host's settings shell lists every
 // entry as a nav row (see dsh-client-ui-settings-general) and renders the page
 // body with the composed props. Plain React + inline styles on purpose: no
 // primitives-version coupling, no build step.
 window.__ModuleLoader__.load({
-  id: 'dsh-home-assistant',
+  id: 'dsh-home-assistant-panel',
   factory: (require) => {
     const React = require('react')
     const h = React.createElement
@@ -941,7 +941,7 @@ window.__ModuleLoader__.load({
             }
           }, 'home-assistant: right sidebar status tab')
         } catch (error) {
-          console.warn('[dsh-home-assistant] 右侧栏状态卡未注册（设置页不受影响）：', error)
+          console.warn('[dsh-home-assistant-panel] 右侧栏状态卡未注册（设置页不受影响）：', error)
         }
       })
     }
@@ -1148,7 +1148,7 @@ window.__ModuleLoader__.load({
           ),
         )
       } catch (error) {
-        console.warn('[dsh-home-assistant] 左侧主面板未注册（设置页/右侧栏不受影响）：', error)
+        console.warn('[dsh-home-assistant-panel] 左侧主面板未注册（设置页/右侧栏不受影响）：', error)
       }
     }
 
@@ -1195,17 +1195,17 @@ window.__ModuleLoader__.load({
             ),
           )
         } catch (error) {
-          console.warn('[dsh-home-assistant] 设置页未注册（插件其余部分不受影响）：', error)
+          console.warn('[dsh-home-assistant-panel] 设置页未注册（插件其余部分不受影响）：', error)
         }
         try {
           registerSidebarTab(ctx)
         } catch (error) {
-          console.warn('[dsh-home-assistant] 右侧栏状态卡初始化失败（设置页不受影响）：', error)
+          console.warn('[dsh-home-assistant-panel] 右侧栏状态卡初始化失败（设置页不受影响）：', error)
         }
         try {
           registerMainPanel(ctx)
         } catch (error) {
-          console.warn('[dsh-home-assistant] 左侧主面板初始化失败（设置页/右侧栏不受影响）：', error)
+          console.warn('[dsh-home-assistant-panel] 左侧主面板初始化失败（设置页/右侧栏不受影响）：', error)
         }
         try {
           if (typeof statusNotifierCleanup === 'function') statusNotifierCleanup()
@@ -1218,7 +1218,7 @@ window.__ModuleLoader__.load({
             }
           })
         } catch (error) {
-          console.warn('[dsh-home-assistant] 浏览器通知初始化失败（状态面板不受影响）：', error)
+          console.warn('[dsh-home-assistant-panel] 浏览器通知初始化失败（状态面板不受影响）：', error)
         }
       },
     }

@@ -67,8 +67,8 @@ globalThis.window = {
 }
 
 await import(`${pathToFileURL(clientPath).href}?t=${Date.now()}`)
-if (!registration || registration.id !== 'dsh-home-assistant') {
-  console.error('FAIL: client bundle did not register itself as dsh-home-assistant')
+if (!registration || registration.id !== 'dsh-home-assistant-panel') {
+  console.error('FAIL: client bundle did not register itself as dsh-home-assistant-panel')
   process.exit(1)
 }
 

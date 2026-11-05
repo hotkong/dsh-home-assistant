@@ -1,4 +1,4 @@
-# dsh-home-assistant
+# dsh-home-assistant-panel
 
 [English](./README.en.md) | 中文
 
@@ -23,10 +23,10 @@ Core 2026.10.4 ｜ Supervisor 2026.10.4 ｜ OS 18.3.1
 ## 安装
 
 ```sh
-dsh plugin --profile web add dsh-home-assistant
+dsh plugin --profile web add dsh-home-assistant-panel
 ```
 
-装完刷新页面（或重启 `dsh web`）。插件在市场里的名字是 `dsh-home-assistant`。
+装完刷新页面（或重启 `dsh web`）。插件在市场里的名字是 `dsh-home-assistant-panel`。
 
 本地开发时可以把仓库 `link:` 进 profile 的 `dependencies`，并把包名加进 `dsh.profile.bundles`；插件自带的 `cordis.patch.yml` 会自动插入 `home-assistant` 行，profile 的 patch 只需覆盖 `config`。本机就是这么跑的（见 `openspec/changes/0001-dsh-ha-plugin/tasks.md` 的验证记录）。
 
